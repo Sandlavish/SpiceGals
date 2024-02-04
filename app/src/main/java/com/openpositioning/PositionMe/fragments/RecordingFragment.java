@@ -1,7 +1,18 @@
 package com.openpositioning.PositionMe.fragments;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -11,22 +22,44 @@ import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.preference.PreferenceManager;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
+
+import java.util.List;
+
 
 /**
  * A simple {@link Fragment} subclass. The recording fragment is displayed while the app is actively
@@ -38,8 +71,21 @@ import com.openpositioning.PositionMe.sensors.SensorTypes;
  *
  * @author Mate Stodulka
  */
-public class RecordingFragment extends Fragment {
+public class RecordingFragment extends Fragment implements SensorEventListener {
+    private Polyline userTrajectory;
 
+    private Polyline pdrPolyline;
+
+    private float lastBearing = 0; // Store the last bearing to smooth transitions
+
+
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private Sensor magnetometer;
+    float[] accelerometerReading = new float[3];
+    float[] magnetometerReading = new float[3];
+    float[] rotationMatrix = new float[9];
+    float[] orientationAngles = new float[3];
     //Button to end PDR recording
     private Button stopButton;
     private Button cancelButton;
@@ -68,8 +114,28 @@ public class RecordingFragment extends Fragment {
 
     //variables to store data of the trajectory
     private float distance;
+
+    private double net_change;
+
+    private Marker pdrMarker;
     private float previousPosX;
     private float previousPosY;
+
+    private GoogleMap mMap;
+
+    private Marker userLocationMarker;
+
+    private FusedLocationProviderClient fusedLocationProviderClient;
+    private LocationCallback locationCallback;
+
+    private static final float MOVEMENT_THRESHOLD = 5f; // meters
+    private Location lastLocationUpdate;
+
+    private LatLng PDRPOS;
+
+    private KalmanLatLong kalmanFilter;
+    private static final float Q_METRES_PER_SECOND = 0.1f; // Adjust this value based on your needs
+
 
     /**
      * Public Constructor for the class.
@@ -85,8 +151,87 @@ public class RecordingFragment extends Fragment {
      * Creates a handler for periodically updating the displayed data.
      *
      */
+
+    public class KalmanLatLong {
+        private final float MinAccuracy = 1;
+
+        private float Q_metres_per_second;
+        private long TimeStamp_milliseconds;
+        private double lat;
+        private double lng;
+        private float variance; // P matrix.  Negative means object uninitialised.
+
+        public KalmanLatLong(float Q_metres_per_second) {
+            this.Q_metres_per_second = Q_metres_per_second;
+            variance = -1;
+        }
+        private double updateStepLength() {
+            // Update and return the new step length
+            return 0.75; // Example fixed value; replace with actual computation
+        }
+
+        private double updateHeading() {
+            // Update and return the new heading
+            return 45; // Example fixed value; replace with actual computation
+        }
+        // Method to update PDR position based on the current position, step length, and heading
+
+        public long get_TimeStamp() {
+            return TimeStamp_milliseconds;
+        }
+
+        public double get_lat() {
+            return lat;
+        }
+
+        public double get_lng() {
+            return lng;
+        }
+
+        public float get_accuracy() {
+            return (float) Math.sqrt(variance);
+        }
+
+        public void SetState(double lat, double lng, float accuracy, long TimeStamp_milliseconds) {
+            this.lat = lat;
+            this.lng = lng;
+            variance = accuracy * accuracy;
+            this.TimeStamp_milliseconds = TimeStamp_milliseconds;
+        }
+
+        public void Process(double lat_measurement, double lng_measurement, float accuracy, long TimeStamp_milliseconds, float Q_metres_per_second) {
+            if (accuracy < MinAccuracy) accuracy = MinAccuracy;
+            if (variance < 0) {
+                // if variance < 0, object is unitialised, so initialise with current values
+                SetState(lat_measurement, lng_measurement, accuracy, TimeStamp_milliseconds);
+            } else {
+                // else apply Kalman filter methodology
+
+                long TimeInc_milliseconds = TimeStamp_milliseconds - this.TimeStamp_milliseconds;
+                if (TimeInc_milliseconds > 0) {
+                    // time has moved on, so the uncertainty in the current position increases
+                    variance += TimeInc_milliseconds * Q_metres_per_second * Q_metres_per_second / 1000;
+                    this.TimeStamp_milliseconds = TimeStamp_milliseconds;
+                    // TO DO: USE VELOCITY INFORMATION HERE TO GET A BETTER ESTIMATE OF CURRENT POSITION
+                }
+
+                // Kalman gain matrix K = Covariance * Inverse(Covariance + MeasurementVariance)
+                // because K is dimensionless, it doesn't matter that variance has different units to lat and lng
+                float K = variance / (variance + accuracy * accuracy);
+                // apply K
+                lat += K * (lat_measurement - lat);
+                lng += K * (lng_measurement - lng);
+                // new Covariance matrix is (IdentityMatrix - K) * Covariance
+                variance = (1 - K) * variance;
+            }
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         super.onCreate(savedInstanceState);
         this.sensorFusion = SensorFusion.getInstance();
         Context context = getActivity();
@@ -106,8 +251,10 @@ public class RecordingFragment extends Fragment {
         // Inflate the layout for this fragment
         ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
         getActivity().setTitle("Recording...");
+
         return rootView;
     }
+
 
     /**
      * {@inheritDoc}
@@ -118,6 +265,144 @@ public class RecordingFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
+        // Other initialization code...
+        kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND);
+
+
+        Spinner mapTypeSpinner = view.findViewById(R.id.mapTypeSpinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                R.array.map_types, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mapTypeSpinner.setAdapter(adapter);
+
+        mapTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (mMap != null) {
+                    switch (position) {
+                        case 0:
+                            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                            break;
+                        case 1:
+                            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                            break;
+                        case 2:
+                            mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                            break;
+                        case 3:
+                            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                            break;
+                    }
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Can be left empty
+            }
+        });
+
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(new OnMapReadyCallback() {
+                @Override
+                public void onMapReady(GoogleMap googleMap) {
+                    // Map is ready to be used.
+                    mMap = googleMap;
+                    userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED)); // You can customize the width and color
+                    pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
+
+                    float[] startPosition = sensorFusion.getGNSSLatitude(false);
+                    PDRPOS = new LatLng(startPosition[0], startPosition[1]);
+                    if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        LocationRequest locationRequest = new LocationRequest();
+                        locationRequest.setInterval(2000);
+                        locationRequest.setFastestInterval(1000);
+                        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                        FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
+                        locationCallback = new LocationCallback() {
+                            @Override
+                            public void onLocationResult(LocationResult locationResult) {
+                                if (locationResult == null) {
+                                    return;
+                                }
+                                List<LatLng> points = userTrajectory.getPoints(); // Declare once at the top
+                                List<LatLng> pdrPoints = pdrPolyline.getPoints();
+
+
+                                for (Location location : locationResult.getLocations()) {
+
+                                    // Add a marker to show the GNSS position
+                                    LatLng gnssLatLng = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+
+                                    // Add a circle to show the positioning error (accuracy)
+                                    float accuracy = location.getAccuracy(); // The accuracy, in meters, as a radius
+//                                    mMap.addCircle(new CircleOptions()
+//                                            .center(gnssLatLng)
+//                                            .radius(accuracy) // Set the radius to the accuracy of the location
+//                                            .strokeColor(Color.argb(50, 0, 0, 255)) // Semi-transparent blue for the stroke
+//                                            .fillColor(Color.argb(30, 0, 0, 255))); // Lighter, more transparent blue for the fill
+
+                                    if (kalmanFilter.get_accuracy() < 0) {
+                                        kalmanFilter.SetState(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
+                                    } else {
+                                        kalmanFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime(), Q_METRES_PER_SECOND);
+                                    }
+
+                                    // Use the filtered coordinates
+                                    LatLng newLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+                                    if (userLocationMarker == null) {
+                                        userLocationMarker = mMap.addMarker(new MarkerOptions()
+                                                .position(newLocation)
+                                                .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24))));
+                                    } else {
+                                        userLocationMarker.setPosition(newLocation);
+                                    }
+                                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 20));
+
+                                    // In the location callback or sensor data processing method
+                                    //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 19));
+                                    if (PDRPOS.latitude != 0 && PDRPOS.longitude != 0){
+                                        // Add PDR position to the polyline
+                                        pdrPoints.add(PDRPOS);
+                                        pdrPolyline.setPoints(pdrPoints);
+                                        if (pdrMarker != null) {
+                                            pdrMarker.setPosition(PDRPOS);
+                                        } else {
+                                            pdrMarker = mMap.addMarker(new MarkerOptions().position(PDRPOS)
+                                                    .title("PDR Position")
+                                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
+                                        }
+                                    }
+                                    points.add(newLocation); // Use the already declared 'points' variable
+                                }
+                                userTrajectory.setPoints(points); // Update the polyline outside the loop
+                            }
+
+                            private Bitmap getBitmapFromVector(Context context, int vectorResId) {
+                                Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+
+                                // Create a bitmap to draw the vector into
+                                Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+
+                                // Create a canvas to draw onto the bitmap
+                                Canvas canvas = new Canvas(bitmap);
+
+                                // Set bounds for the drawable and draw it onto the canvas
+                                vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                                vectorDrawable.draw(canvas);
+
+                                return bitmap;
+                            }
+
+                        };
+                        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+                    }
+                }
+            });
+        }
 
         // Set autoStop to null for repeat recordings
         this.autoStop = null;
@@ -182,8 +467,13 @@ public class RecordingFragment extends Fragment {
         // Display a blinking red dot to show recording is in progress
         blinkingRecording();
 
+
+
+
         // Check if there is manually set time limit:
         if(this.settings.getBoolean("split_trajectory", false)) {
+
+
             // If that time limit has been reached:
             long limit = this.settings.getInt("split_duration", 30) * 60000L;
             // Set progress bar
@@ -197,6 +487,7 @@ public class RecordingFragment extends Fragment {
                  * Increment the progress bar to display progress and remaining time. Update the
                  * observed PDR values, and animate icons based on the data.
                  */
+
                 @Override
                 public void onTick(long l) {
                     // increment progress bar
@@ -218,6 +509,8 @@ public class RecordingFragment extends Fragment {
 
                     //Rotate compass image to heading angle
                     compassIcon.setRotation((float) -Math.toDegrees(sensorFusion.passOrientation()));
+
+
                 }
 
                 /**
@@ -245,16 +538,26 @@ public class RecordingFragment extends Fragment {
      * Runnable task used to refresh UI elements with live data.
      * Has to be run through a Handler object to be able to alter UI elements
      */
+
+    private double diffx;
+    private double diffy;
     private final Runnable refreshDataTask = new Runnable() {
         @Override
         public void run() {
+
             // Get new position
             float[] pdrValues = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
             positionX.setText(getString(R.string.x, String.format("%.1f", pdrValues[0])));
             positionY.setText(getString(R.string.y, String.format("%.1f", pdrValues[1])));
             // Calculate distance travelled
+            net_change = Math.sqrt(Math.pow(pdrValues[0] - previousPosX, 2) + Math.pow(pdrValues[1] - previousPosY, 2));
             distance += Math.sqrt(Math.pow(pdrValues[0] - previousPosX, 2) + Math.pow(pdrValues[1] - previousPosY, 2));
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
+            diffx = pdrValues[0] - previousPosX;
+            diffy = pdrValues[1] - previousPosY;
+
+            PDRPOS = updatePdrPosition(PDRPOS);
+
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
             // Display elevation and elevator icon when necessary
@@ -268,8 +571,40 @@ public class RecordingFragment extends Fragment {
 
             // Loop the task again to keep refreshing the data
             refreshDataHandler.postDelayed(refreshDataTask, 500);
+
         }
     };
+
+    private LatLng lastUpdatedPdrPosition;
+    private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 2; // meters, adjust as needed
+
+    private float distanceBetween(LatLng point1, LatLng point2) {
+        float[] results = new float[1];
+        Location.distanceBetween(point1.latitude, point1.longitude, point2.latitude, point2.longitude, results);
+        return results[0]; // Distance in meters
+    }
+
+    private LatLng updatePdrPosition(LatLng currentPos) {
+        if (currentPos != null && net_change != 0) {
+            System.out.println("Print 1");
+            // Calculate the new position based on step length
+            double stepLengthInDegreesLat = currentPos.latitude + (diffx)/ (110540 * Math.cos((currentPos.longitude)));
+            double stepLengthInDegreesLng = currentPos.longitude + (diffy) / (111320 * Math.sin((currentPos.latitude)));
+            LatLng newPos = new LatLng(stepLengthInDegreesLat, stepLengthInDegreesLng);
+
+            // Check if this is the first update or if the user has moved sufficiently
+            if (lastUpdatedPdrPosition == null || distanceBetween(lastUpdatedPdrPosition, newPos) > MIN_DISTANCE_CHANGE_FOR_UPDATES) {
+                lastUpdatedPdrPosition = newPos; // Update the last updated position
+                return newPos; // Return the new position
+            } else {
+                System.out.println("PDR has been set to GNSS");
+                return lastUpdatedPdrPosition; // No significant movement, return the last updated position
+            }
+        } else {
+            System.out.println("Hello, PDR position update failed due to null currentPos.");
+            return new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng()); // Fallback to Kalman filter's position
+        }
+    }
 
     /**
      * Displays a blinking red dot to signify an ongoing recording.
@@ -294,8 +629,70 @@ public class RecordingFragment extends Fragment {
      */
     @Override
     public void onPause() {
-        refreshDataHandler.removeCallbacks(refreshDataTask);
         super.onPause();
+        sensorManager.unregisterListener(this);
+        refreshDataHandler.removeCallbacks(refreshDataTask);
+        if (fusedLocationProviderClient != null) {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+        }
+        refreshDataHandler.removeCallbacks(refreshDataTask);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+        }
+        updateOrientationAngles();
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Can be left empty
+    }
+
+    private void updateOrientationAngles() {
+        SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading);
+        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+
+        // Convert the azimuth to degrees and normalize it
+        float bearing = (float) Math.toDegrees(orientationAngles[0]) % 360;
+        if (bearing < 0) {
+            bearing += 360; // Normalize the bearing
+        }
+
+        // Smooth the transition between the current and new bearing
+        bearing = smoothBearing(lastBearing, bearing);
+        lastBearing = bearing; // Update the last bearing
+
+        // Adjust for map orientation if your map can rotate
+        if (mMap != null) {
+            float mapRotation = mMap.getCameraPosition().bearing;
+            bearing -= mapRotation; // Adjust the bearing based on map rotation
+        }
+
+        if (userLocationMarker != null) {
+            userLocationMarker.setRotation(bearing);
+        }
+    }
+
+    private float smoothBearing(float lastBearing, float newBearing) {
+        float diff = Math.abs(newBearing - lastBearing);
+        if (diff > 180) {
+            // Choose the shorter path to the new bearing
+            if (newBearing > lastBearing) {
+                lastBearing += 360;
+            } else {
+                newBearing += 360;
+            }
+        }
+
+        // Calculate a simple linear interpolation
+        // Adjust the weight for smoother or more responsive changes
+        float weight = 0.3f; // Choose a value between 0 (no smoothing) and 1 (no change)
+        return lastBearing * (1 - weight) + newBearing * weight;
     }
 
     /**
@@ -304,6 +701,8 @@ public class RecordingFragment extends Fragment {
      */
     @Override
     public void onResume() {
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
         if(!this.settings.getBoolean("split_trajectory", false)) {
             refreshDataHandler.postDelayed(refreshDataTask, 500);
         }

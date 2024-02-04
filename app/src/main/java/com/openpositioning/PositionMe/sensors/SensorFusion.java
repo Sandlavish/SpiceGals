@@ -373,6 +373,13 @@ public class SensorFusion implements SensorEventListener, Observer {
         }
     }
 
+    public float getAzimuth() {
+        // Convert the azimuth from radians to degrees and normalize it to 0-360
+        float azimuthDegrees = (float) Math.toDegrees(this.orientation[0]);
+        azimuthDegrees = (azimuthDegrees + 360) % 360; // Normalize to 0-360 degrees if negative
+        return azimuthDegrees;
+    }
+
     /**
      * {@inheritDoc}
      *

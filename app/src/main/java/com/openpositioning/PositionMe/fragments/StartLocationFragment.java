@@ -4,7 +4,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,8 +16,6 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 
-import com.openpositioning.PositionMe.R;
-import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -22,6 +23,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.openpositioning.PositionMe.R;
+import com.openpositioning.PositionMe.sensors.SensorFusion;
 /**
  * A simple {@link Fragment} subclass. The startLocation fragment is displayed before the trajectory
  * recording starts. This fragment displays a map in which the user can adjust their location to
@@ -45,6 +48,8 @@ public class StartLocationFragment extends Fragment {
     private float[] startPosition = new float[2];
     //Zoom of google maps
     private float zoom = 19f;
+
+    private Button startTrackingButton;
 
     /**
      * Public Constructor for the class.
@@ -74,9 +79,12 @@ public class StartLocationFragment extends Fragment {
         else {
             zoom = 19f;
         }
+
         // Initialize map fragment
         SupportMapFragment supportMapFragment=(SupportMapFragment)
                 getChildFragmentManager().findFragmentById(R.id.startMap);
+
+
 
         // Asynchronous map which can be configured
         supportMapFragment.getMapAsync(new OnMapReadyCallback() {
@@ -99,6 +107,36 @@ public class StartLocationFragment extends Fragment {
                 position = new LatLng(startPosition[0], startPosition[1]);
                 mMap.addMarker(new MarkerOptions().position(position).title("Start Position")).setDraggable(true);
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, zoom ));
+
+                Spinner mapTypeSpinner = rootView.findViewById(R.id.mapTypeSpinner);
+                ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                        R.array.map_types, android.R.layout.simple_spinner_item);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                mapTypeSpinner.setAdapter(adapter);
+
+                mapTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                        switch (position) {
+                            case 0:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                                break;
+                            case 1:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                                break;
+                            case 2:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                                break;
+                            case 3:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                                break;
+                        }
+                    }
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parentView) {
+                        // No action needed, but the method must be overridden
+                    }
+                });
 
                 //Drag listener for the marker to execute when the markers location is changed
                 mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener()
