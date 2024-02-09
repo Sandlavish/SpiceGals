@@ -25,18 +25,13 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
-/**
- * A simple {@link Fragment} subclass. The startLocation fragment is displayed before the trajectory
- * recording starts. This fragment displays a map in which the user can adjust their location to
- * correct the PDR when it is complete
- *
- * @see HomeFragment the previous fragment in the nav graph.
- * @see RecordingFragment the next fragment in the nav graph.
- * @see SensorFusion the class containing sensors and recording.
- *
- * @author Virginia Cangelosi
- */
+
+
 public class StartLocationFragment extends Fragment {
+    public static LatLng StartLocation;
+
+    public static int type;
+    public static int map;
 
     //Button to go to next fragment and save the location
     private Button button;
@@ -84,8 +79,6 @@ public class StartLocationFragment extends Fragment {
         SupportMapFragment supportMapFragment=(SupportMapFragment)
                 getChildFragmentManager().findFragmentById(R.id.startMap);
 
-
-
         // Asynchronous map which can be configured
         supportMapFragment.getMapAsync(new OnMapReadyCallback() {
             /**
@@ -119,18 +112,20 @@ public class StartLocationFragment extends Fragment {
                     public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
                         switch (position) {
                             case 0:
-                                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                                type = GoogleMap.MAP_TYPE_NORMAL;
                                 break;
                             case 1:
-                                mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                                type = GoogleMap.MAP_TYPE_SATELLITE;
                                 break;
                             case 2:
-                                mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                                type = GoogleMap.MAP_TYPE_TERRAIN;
                                 break;
                             case 3:
-                                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                                type = GoogleMap.MAP_TYPE_HYBRID;
                                 break;
                         }
+                        GlobalVariables.setMapType(type); // Set the global map type
+                        mMap.setMapType(type); // Set the map type immediately for current map
                     }
                     @Override
                     public void onNothingSelected(AdapterView<?> parentView) {
@@ -190,6 +185,8 @@ public class StartLocationFragment extends Fragment {
                 sensorFusion.startRecording();
                 // Set the start location obtained
                 sensorFusion.setStartGNSSLatitude(startPosition);
+
+                StartLocation = new LatLng(startPosition[0], startPosition[1]);
                 // Navigate to the RecordingFragment
                 NavDirections action = StartLocationFragmentDirections.actionStartLocationFragmentToRecordingFragment();
                 Navigation.findNavController(view).navigate(action);

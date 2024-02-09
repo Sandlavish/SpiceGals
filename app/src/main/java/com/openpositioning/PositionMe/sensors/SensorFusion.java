@@ -373,13 +373,6 @@ public class SensorFusion implements SensorEventListener, Observer {
         }
     }
 
-    public float getAzimuth() {
-        // Convert the azimuth from radians to degrees and normalize it to 0-360
-        float azimuthDegrees = (float) Math.toDegrees(this.orientation[0]);
-        azimuthDegrees = (azimuthDegrees + 360) % 360; // Normalize to 0-360 degrees if negative
-        return azimuthDegrees;
-    }
-
     /**
      * {@inheritDoc}
      *
@@ -790,19 +783,19 @@ public class SensorFusion implements SensorEventListener, Observer {
         public void run() {
             // Store IMU and magnetometer data in Trajectory class
             trajectory.addImuData(Traj.Motion_Sample.newBuilder()
-                    .setRelativeTimestamp(android.os.SystemClock.uptimeMillis()-bootTime)
-                    .setAccX(acceleration[0])
-                    .setAccY(acceleration[1])
-                    .setAccZ(acceleration[2])
-                    .setGyrX(angularVelocity[0])
-                    .setGyrY(angularVelocity[1])
-                    .setGyrZ(angularVelocity[2])
-                    .setGyrZ(angularVelocity[2])
-                    .setRotationVectorX(rotation[0])
-                    .setRotationVectorY(rotation[1])
-                    .setRotationVectorZ(rotation[2])
-                    .setRotationVectorW(rotation[3])
-                    .setStepCount(stepCounter))
+                            .setRelativeTimestamp(android.os.SystemClock.uptimeMillis()-bootTime)
+                            .setAccX(acceleration[0])
+                            .setAccY(acceleration[1])
+                            .setAccZ(acceleration[2])
+                            .setGyrX(angularVelocity[0])
+                            .setGyrY(angularVelocity[1])
+                            .setGyrZ(angularVelocity[2])
+                            .setGyrZ(angularVelocity[2])
+                            .setRotationVectorX(rotation[0])
+                            .setRotationVectorY(rotation[1])
+                            .setRotationVectorZ(rotation[2])
+                            .setRotationVectorW(rotation[3])
+                            .setStepCount(stepCounter))
                     .addPositionData(Traj.Position_Sample.newBuilder()
                             .setMagX(magneticField[0])
                             .setMagY(magneticField[1])

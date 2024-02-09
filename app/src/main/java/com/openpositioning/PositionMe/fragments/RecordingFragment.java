@@ -9,16 +9,16 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsetsAnimation;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
@@ -49,7 +49,11 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CircleOptions;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
@@ -59,7 +63,6 @@ import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
 
 import java.util.List;
-
 
 /**
  * A simple {@link Fragment} subclass. The recording fragment is displayed while the app is actively
@@ -71,13 +74,19 @@ import java.util.List;
  *
  * @author Mate Stodulka
  */
-public class RecordingFragment extends Fragment implements SensorEventListener {
+public class RecordingFragment extends Fragment implements OnMapReadyCallback {
+
     private Polyline userTrajectory;
-
     private Polyline pdrPolyline;
-
     private float lastBearing = 0; // Store the last bearing to smooth transitions
-
+    private GroundOverlay groundflooroverlay;
+    private GroundOverlay firstflooroverlay;
+    private GroundOverlay secondflooroverlay;
+    private GroundOverlay thirdflooroverlay;
+    private GroundOverlay librarygroundflooroverlay;
+    private GroundOverlay libraryfirstflooroverlay;
+    private GroundOverlay librarysecondflooroverlay;
+    private GroundOverlay librarythirdflooroverlay;
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -91,6 +100,12 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
     private Button cancelButton;
     //Recording icon to show user recording is in progress
     private ImageView recIcon;
+
+    private LatLngBounds buildingBounds; //building bounds for the Nucleus
+
+    private LatLngBounds buildingBoundsLibrary; //building bounds for the Library
+
+    private LatLngBounds TestingBounds;
     //Compass icon to show user direction of heading
     private ImageView compassIcon;
     // Elevator icon to show elevator usage
@@ -117,6 +132,10 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
 
     private double net_change;
 
+    private boolean userIsOnFirstFloor = false; // Default to ground floor
+    private boolean userIsOnSecondFloor = false; // Default to ground floor
+    private boolean userIsOnThirdFloor = false; // Default to ground floor
+
     private Marker pdrMarker;
     private float previousPosX;
     private float previousPosY;
@@ -128,15 +147,16 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
 
-    private static final float MOVEMENT_THRESHOLD = 5f; // meters
-    private Location lastLocationUpdate;
-
     private LatLng PDRPOS;
 
-    private KalmanLatLong kalmanFilter;
+    boolean isUserNearGroundFloor;
+
+    boolean isuserNearGroundFloorLibrary;
+
+    boolean isUserNeartestingBounds;
     private static final float Q_METRES_PER_SECOND = 0.1f; // Adjust this value based on your needs
 
-
+    private KalmanLatLong kalmanFilter;
     /**
      * Public Constructor for the class.
      * Left empty as not required
@@ -226,17 +246,14 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
             }
         }
     }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         super.onCreate(savedInstanceState);
         this.sensorFusion = SensorFusion.getInstance();
         Context context = getActivity();
         this.settings = PreferenceManager.getDefaultSharedPreferences(context);
         this.refreshDataHandler = new Handler();
+        this.kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND); // Ensure you have defined Q_METRES_PER_SECOND appropriately
     }
 
     /**
@@ -251,8 +268,193 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
         // Inflate the layout for this fragment
         ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
         getActivity().setTitle("Recording...");
-
+        initializeMap();
         return rootView;
+    }
+
+    private void initializeMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this::onMapReady);
+        }
+//        float[] startPosition = sensorFusion.getGNSSLatitude(false);
+//        PDRPOS = new LatLng(startPosition[0], startPosition[1]);
+        PDRPOS = StartLocationFragment.StartLocation;
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+
+        // Set the map type from the global settings
+        //mMap.setMapType(StartLocationFragment.type);
+
+        setupMapComponents();
+
+        LatLng testingsouthwest = new LatLng(55.94233, -3.18956);
+        LatLng testingnortheast = new LatLng(55.94300, -3.18851);
+
+        // Specify the location where the overlay should be placed
+        LatLng southwestcornerNucleus = new LatLng(55.92278, -3.17465);
+        LatLng northeastcornerNucleus = new LatLng(55.92335, -3.173842);
+
+
+        LatLng southwestcornerLibrary = new LatLng(55.922738, -3.17517);
+        LatLng northeastcornerLibrary = new LatLng(55.923061, -3.174764);
+
+
+        TestingBounds= new LatLngBounds(testingsouthwest, testingnortheast);
+        buildingBounds = new LatLngBounds(southwestcornerNucleus, northeastcornerNucleus); //building bounds for the Nucleus
+        buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary); //building bounds for the library
+
+
+        // Create GroundOverlayOptions
+        GroundOverlayOptions groundfloorOverlayOptions = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleusg)) // Set the image for the overlay
+                .positionFromBounds(buildingBounds);// Set the position and width (the height will be auto-calculated)
+
+        GroundOverlayOptions firstFloorOverlayOptions = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus1))
+                .positionFromBounds(buildingBounds);
+
+        GroundOverlayOptions secondFloorOverlayOptions = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus2))
+                .positionFromBounds(buildingBounds);
+
+        GroundOverlayOptions thirdFloorOverlayOptions = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus3))
+                .positionFromBounds(buildingBounds);
+
+        GroundOverlayOptions librarygroundfloor = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.libraryg))
+                .positionFromBounds(buildingBoundsLibrary)
+                .transparency(0.5f);
+        GroundOverlayOptions libraryfirstfloor = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.library1))
+                .positionFromBounds(buildingBoundsLibrary)
+                .transparency(0.5f);
+        GroundOverlayOptions librarysecondfloor = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.library2))
+                .positionFromBounds(buildingBoundsLibrary)
+                .transparency(0.5f);
+        GroundOverlayOptions librarythirdfloor = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.library3))
+                .positionFromBounds(buildingBoundsLibrary)
+                .transparency(0.5f);
+
+        // Add the overlay to the map
+        groundflooroverlay = mMap.addGroundOverlay(groundfloorOverlayOptions);
+        firstflooroverlay = mMap.addGroundOverlay(firstFloorOverlayOptions);
+        secondflooroverlay = mMap.addGroundOverlay(secondFloorOverlayOptions);
+        thirdflooroverlay = mMap.addGroundOverlay(thirdFloorOverlayOptions);
+
+        librarygroundflooroverlay = mMap.addGroundOverlay(librarygroundfloor);
+        libraryfirstflooroverlay = mMap.addGroundOverlay(libraryfirstfloor);
+        librarysecondflooroverlay = mMap.addGroundOverlay(librarysecondfloor);
+        librarythirdflooroverlay = mMap.addGroundOverlay(librarythirdfloor);
+
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(buildingBoundsLibrary, 10)); // '100' is padding around bounds
+
+
+        updateFloorOverlay();
+    }
+
+    private void updateFloorOverlay() {
+        if (groundflooroverlay != null && firstflooroverlay != null && secondflooroverlay!=null && thirdflooroverlay!=null) {
+            groundflooroverlay.setVisible(!userIsOnFirstFloor);
+            firstflooroverlay.setVisible(userIsOnFirstFloor);
+            secondflooroverlay.setVisible(userIsOnSecondFloor);
+            thirdflooroverlay.setVisible(userIsOnThirdFloor);
+            librarygroundflooroverlay.setVisible(!userIsOnFirstFloor);
+            libraryfirstflooroverlay.setVisible(userIsOnFirstFloor);
+            librarysecondflooroverlay.setVisible(userIsOnSecondFloor);
+            librarythirdflooroverlay.setVisible(userIsOnThirdFloor);
+        }
+    }
+
+
+    private void setupMapComponents() {
+        userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED));
+        pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
+
+        configureLocationUpdates();
+    }
+
+    private void configureLocationUpdates() {
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            LocationRequest locationRequest = LocationRequest.create();
+            locationRequest.setInterval(5000);
+            locationRequest.setFastestInterval(2500);
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getContext());
+            locationCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    handleLocationUpdates(locationResult);
+                }
+            };
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+        }
+    }
+
+    private boolean isLocationWithinOverlay(LatLng location, LatLngBounds overlayBounds) {
+        return overlayBounds.contains(location);
+    }
+
+    private void handleLocationUpdates(LocationResult locationResult) {
+        if (locationResult == null) {
+            return;
+        }
+        List<LatLng> points = userTrajectory.getPoints();
+
+
+        for (Location location : locationResult.getLocations()) {
+
+            // Add a marker to show the GNSS position
+            LatLng gnssLatLng = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+            //Add a circle to show the positioning error (accuracy)
+//            float accuracy = location.getAccuracy(); // The accuracy, in meters, as a radius
+//                                    mMap.addCircle(new CircleOptions()
+//                                            .center(gnssLatLng)
+//                                            .radius(accuracy) // Set the radius to the accuracy of the location
+//                                            .strokeColor(Color.argb(50, 0, 0, 255)) // Semi-transparent blue for the stroke
+//                                            .fillColor(Color.argb(30, 0, 0, 255))); // Lighter, more transparent blue for the fill
+
+//            if (kalmanFilter.get_accuracy() < 0) {
+//                kalmanFilter.SetState(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
+//            } else {
+//                kalmanFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime(), Q_METRES_PER_SECOND);
+//            }
+//
+//
+//            //Use the filtered coordinates
+//            LatLng newLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+//
+//
+//            if (userLocationMarker == null) {
+//                userLocationMarker = mMap.addMarker(new MarkerOptions()
+//                        .position(newLocation)
+//                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24))));
+//            } else {
+//                userLocationMarker.setPosition(newLocation);
+//            }
+
+            // mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 19));
+            // In the location callback or sensor data processing method
+
+            //points.add(newLocation); // Use the already declared 'points' variable
+        }
+        userTrajectory.setPoints(points);
+    }
+
+    private Bitmap getBitmapFromVector(Context context, int vectorResId) {
+        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        vectorDrawable.draw(canvas);
+        return bitmap;
     }
 
 
@@ -265,10 +467,65 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
-        // Other initialization code...
-        kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND);
 
+        Button btnGroundFloor = view.findViewById(R.id.btnGroundFloor);
+        Button btnFirstFloor = view.findViewById(R.id.btnFirstFloor);
+        Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
+        Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
+
+        isUserNearGroundFloor = true;
+
+        // Set visibility and enabled state for each button based on user proximity
+        btnGroundFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
+        btnFirstFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
+        btnSecondFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
+        btnThirdFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
+
+        btnGroundFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
+        btnFirstFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
+        btnSecondFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
+        btnThirdFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
+
+        // Define click listeners for each floor button
+        btnGroundFloor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                userIsOnFirstFloor = false;
+                userIsOnSecondFloor = false;
+                userIsOnThirdFloor = false;
+                updateFloorOverlay();
+            }
+        });
+
+        btnFirstFloor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                userIsOnFirstFloor = true;
+                userIsOnSecondFloor = false;
+                userIsOnThirdFloor = false;
+                updateFloorOverlay();
+            }
+        });
+
+        btnSecondFloor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                userIsOnFirstFloor = false;
+                userIsOnSecondFloor = true;
+                userIsOnThirdFloor = false;
+                updateFloorOverlay();
+            }
+        });
+
+        btnThirdFloor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                userIsOnFirstFloor = false;
+                userIsOnSecondFloor = false;
+                userIsOnThirdFloor = true;
+                updateFloorOverlay();
+            }
+        });
 
         Spinner mapTypeSpinner = view.findViewById(R.id.mapTypeSpinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
@@ -304,105 +561,32 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
         });
 
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(new OnMapReadyCallback() {
-                @Override
-                public void onMapReady(GoogleMap googleMap) {
-                    // Map is ready to be used.
-                    mMap = googleMap;
-                    userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED)); // You can customize the width and color
-                    pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
-
-                    float[] startPosition = sensorFusion.getGNSSLatitude(false);
-                    PDRPOS = new LatLng(startPosition[0], startPosition[1]);
-                    if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                        LocationRequest locationRequest = new LocationRequest();
-                        locationRequest.setInterval(2000);
-                        locationRequest.setFastestInterval(1000);
-                        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-                        FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
-                        locationCallback = new LocationCallback() {
-                            @Override
-                            public void onLocationResult(LocationResult locationResult) {
-                                if (locationResult == null) {
-                                    return;
-                                }
-                                List<LatLng> points = userTrajectory.getPoints(); // Declare once at the top
-                                List<LatLng> pdrPoints = pdrPolyline.getPoints();
-
-
-                                for (Location location : locationResult.getLocations()) {
-
-                                    // Add a marker to show the GNSS position
-                                    LatLng gnssLatLng = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-
-                                    // Add a circle to show the positioning error (accuracy)
-                                    float accuracy = location.getAccuracy(); // The accuracy, in meters, as a radius
-//                                    mMap.addCircle(new CircleOptions()
-//                                            .center(gnssLatLng)
-//                                            .radius(accuracy) // Set the radius to the accuracy of the location
-//                                            .strokeColor(Color.argb(50, 0, 0, 255)) // Semi-transparent blue for the stroke
-//                                            .fillColor(Color.argb(30, 0, 0, 255))); // Lighter, more transparent blue for the fill
-
-                                    if (kalmanFilter.get_accuracy() < 0) {
-                                        kalmanFilter.SetState(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
-                                    } else {
-                                        kalmanFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime(), Q_METRES_PER_SECOND);
-                                    }
-
-                                    // Use the filtered coordinates
-                                    LatLng newLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-                                    if (userLocationMarker == null) {
-                                        userLocationMarker = mMap.addMarker(new MarkerOptions()
-                                                .position(newLocation)
-                                                .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24))));
-                                    } else {
-                                        userLocationMarker.setPosition(newLocation);
-                                    }
-                                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 20));
-
-                                    // In the location callback or sensor data processing method
-                                    //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 19));
-                                    if (PDRPOS.latitude != 0 && PDRPOS.longitude != 0){
-                                        // Add PDR position to the polyline
-                                        pdrPoints.add(PDRPOS);
-                                        pdrPolyline.setPoints(pdrPoints);
-                                        if (pdrMarker != null) {
-                                            pdrMarker.setPosition(PDRPOS);
-                                        } else {
-                                            pdrMarker = mMap.addMarker(new MarkerOptions().position(PDRPOS)
-                                                    .title("PDR Position")
-                                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
-                                        }
-                                    }
-                                    points.add(newLocation); // Use the already declared 'points' variable
-                                }
-                                userTrajectory.setPoints(points); // Update the polyline outside the loop
-                            }
-
-                            private Bitmap getBitmapFromVector(Context context, int vectorResId) {
-                                Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-
-                                // Create a bitmap to draw the vector into
-                                Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-
-                                // Create a canvas to draw onto the bitmap
-                                Canvas canvas = new Canvas(bitmap);
-
-                                // Set bounds for the drawable and draw it onto the canvas
-                                vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-                                vectorDrawable.draw(canvas);
-
-                                return bitmap;
-                            }
-
-                        };
-                        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
-                    }
-                }
-            });
-        }
+//        mapTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+//            @Override
+//            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+//                if (mMap != null) {
+//                    switch (position) {
+//                        case 0:
+//                            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+//                            break;
+//                        case 1:
+//                            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+//                            break;
+//                        case 2:
+//                            mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+//                            break;
+//                        case 3:
+//                            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+//                            break;
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onNothingSelected(AdapterView<?> parent) {
+//                // Can be left empty
+//            }
+//        });
 
         // Set autoStop to null for repeat recordings
         this.autoStop = null;
@@ -467,13 +651,8 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
         // Display a blinking red dot to show recording is in progress
         blinkingRecording();
 
-
-
-
         // Check if there is manually set time limit:
         if(this.settings.getBoolean("split_trajectory", false)) {
-
-
             // If that time limit has been reached:
             long limit = this.settings.getInt("split_duration", 30) * 60000L;
             // Set progress bar
@@ -487,7 +666,6 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
                  * Increment the progress bar to display progress and remaining time. Update the
                  * observed PDR values, and animate icons based on the data.
                  */
-
                 @Override
                 public void onTick(long l) {
                     // increment progress bar
@@ -508,9 +686,7 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
                     else elevatorIcon.setVisibility(View.GONE);
 
                     //Rotate compass image to heading angle
-                    compassIcon.setRotation((float) -Math.toDegrees(sensorFusion.passOrientation()));
-
-
+                    compassIcon.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
                 }
 
                 /**
@@ -538,25 +714,19 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
      * Runnable task used to refresh UI elements with live data.
      * Has to be run through a Handler object to be able to alter UI elements
      */
-
-    private double diffx;
-    private double diffy;
     private final Runnable refreshDataTask = new Runnable() {
         @Override
         public void run() {
-
             // Get new position
             float[] pdrValues = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
             positionX.setText(getString(R.string.x, String.format("%.1f", pdrValues[0])));
             positionY.setText(getString(R.string.y, String.format("%.1f", pdrValues[1])));
             // Calculate distance travelled
-            net_change = Math.sqrt(Math.pow(pdrValues[0] - previousPosX, 2) + Math.pow(pdrValues[1] - previousPosY, 2));
             distance += Math.sqrt(Math.pow(pdrValues[0] - previousPosX, 2) + Math.pow(pdrValues[1] - previousPosY, 2));
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
-            diffx = pdrValues[0] - previousPosX;
-            diffy = pdrValues[1] - previousPosY;
 
-            PDRPOS = updatePdrPosition(PDRPOS);
+            updatePDRPosition();
+            //updateOrientationAngles();
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
@@ -566,45 +736,78 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
             if(sensorFusion.getElevator()) elevatorIcon.setVisibility(View.VISIBLE);
             else elevatorIcon.setVisibility(View.GONE);
 
+
+
             //Rotate compass image to heading angle
             compassIcon.setRotation((float) -Math.toDegrees(sensorFusion.passOrientation()));
 
             // Loop the task again to keep refreshing the data
             refreshDataHandler.postDelayed(refreshDataTask, 500);
-
         }
     };
 
-    private LatLng lastUpdatedPdrPosition;
-    private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 2; // meters, adjust as needed
 
-    private float distanceBetween(LatLng point1, LatLng point2) {
-        float[] results = new float[1];
-        Location.distanceBetween(point1.latitude, point1.longitude, point2.latitude, point2.longitude, results);
-        return results[0]; // Distance in meters
-    }
-
-    private LatLng updatePdrPosition(LatLng currentPos) {
-        if (currentPos != null && net_change != 0) {
-            System.out.println("Print 1");
-            // Calculate the new position based on step length
-            double stepLengthInDegreesLat = currentPos.latitude + (diffx)/ (110540 * Math.cos((currentPos.longitude)));
-            double stepLengthInDegreesLng = currentPos.longitude + (diffy) / (111320 * Math.sin((currentPos.latitude)));
-            LatLng newPos = new LatLng(stepLengthInDegreesLat, stepLengthInDegreesLng);
-
-            // Check if this is the first update or if the user has moved sufficiently
-            if (lastUpdatedPdrPosition == null || distanceBetween(lastUpdatedPdrPosition, newPos) > MIN_DISTANCE_CHANGE_FOR_UPDATES) {
-                lastUpdatedPdrPosition = newPos; // Update the last updated position
-                return newPos; // Return the new position
-            } else {
-                System.out.println("PDR has been set to GNSS");
-                return lastUpdatedPdrPosition; // No significant movement, return the last updated position
-            }
-        } else {
-            System.out.println("Hello, PDR position update failed due to null currentPos.");
-            return new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng()); // Fallback to Kalman filter's position
+    private void updatePDRPosition() {
+        // Assuming getPDRCoordinates() returns the latest PDR coordinates as float[2] with x, y values
+        float[] pdrCoordinates = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+        if (pdrCoordinates != null && PDRPOS != null) {
+            LatLng pdrLatLng = convertMetersToLatLng(pdrCoordinates, PDRPOS);
+            updatePDRMarker(pdrLatLng);
+            updatePDRPath(pdrLatLng); // If you also want to draw the path
         }
     }
+
+    private void updatePDRMarker(LatLng position) {
+        if (mMap != null) {
+            if (pdrMarker == null) {
+                // First time: create the marker
+                pdrMarker = mMap.addMarker(new MarkerOptions().position(position).title("PDR Position")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))); // Customize as needed
+            } else {
+                // Subsequent times: just update the position
+                pdrMarker.setPosition(position);
+            }
+        }
+    }
+
+    private LatLng convertMetersToLatLng(float[] pdrCoordinates, LatLng startLatLng) {
+        // Constants
+        final double metersInOneDegreeLatitude = 111111.0;
+
+        // Calculate the change in degrees
+        double deltaLat = pdrCoordinates[1] / metersInOneDegreeLatitude;
+        double deltaLon = pdrCoordinates[0] / (metersInOneDegreeLatitude * Math.cos(Math.toRadians(startLatLng.latitude)));
+
+        // Calculate the new position
+        double newLat = startLatLng.latitude + deltaLat;
+        double newLon = startLatLng.longitude + deltaLon;
+        LatLng newloc = new LatLng(newLat, newLon);
+        //isUserNearGroundFloor = isLocationWithinOverlay(newloc, buildingBounds);
+        //isuserNearGroundFloorLibrary = isLocationWithinOverlay(newloc, buildingBoundsLibrary);
+        //isUserNeartestingBounds = isLocationWithinOverlay(newloc, TestingBounds);
+
+        return new LatLng(newLat, newLon);
+
+
+    }
+
+    private Polyline pdrPath; // Field to hold the PDR path
+
+    private void updatePDRPath(LatLng newPosition) {
+        if (mMap != null) {
+            if (pdrPath == null) {
+                // First time: create the polyline
+                pdrPath = mMap.addPolyline(new PolylineOptions().add(newPosition)
+                        .width(5).color(Color.BLUE)); // Customize as needed
+            } else {
+                // Subsequent times: add the new position to the existing polyline
+                List<LatLng> points = pdrPath.getPoints();
+                points.add(newPosition);
+                pdrPath.setPoints(points);
+            }
+        }
+    }
+
 
     /**
      * Displays a blinking red dot to signify an ongoing recording.
@@ -629,70 +832,8 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
      */
     @Override
     public void onPause() {
+        refreshDataHandler.removeCallbacks(refreshDataTask);
         super.onPause();
-        sensorManager.unregisterListener(this);
-        refreshDataHandler.removeCallbacks(refreshDataTask);
-        if (fusedLocationProviderClient != null) {
-            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-        }
-        refreshDataHandler.removeCallbacks(refreshDataTask);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
-        }
-        updateOrientationAngles();
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // Can be left empty
-    }
-
-    private void updateOrientationAngles() {
-        SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading);
-        SensorManager.getOrientation(rotationMatrix, orientationAngles);
-
-        // Convert the azimuth to degrees and normalize it
-        float bearing = (float) Math.toDegrees(orientationAngles[0]) % 360;
-        if (bearing < 0) {
-            bearing += 360; // Normalize the bearing
-        }
-
-        // Smooth the transition between the current and new bearing
-        bearing = smoothBearing(lastBearing, bearing);
-        lastBearing = bearing; // Update the last bearing
-
-        // Adjust for map orientation if your map can rotate
-        if (mMap != null) {
-            float mapRotation = mMap.getCameraPosition().bearing;
-            bearing -= mapRotation; // Adjust the bearing based on map rotation
-        }
-
-        if (userLocationMarker != null) {
-            userLocationMarker.setRotation(bearing);
-        }
-    }
-
-    private float smoothBearing(float lastBearing, float newBearing) {
-        float diff = Math.abs(newBearing - lastBearing);
-        if (diff > 180) {
-            // Choose the shorter path to the new bearing
-            if (newBearing > lastBearing) {
-                lastBearing += 360;
-            } else {
-                newBearing += 360;
-            }
-        }
-
-        // Calculate a simple linear interpolation
-        // Adjust the weight for smoother or more responsive changes
-        float weight = 0.3f; // Choose a value between 0 (no smoothing) and 1 (no change)
-        return lastBearing * (1 - weight) + newBearing * weight;
     }
 
     /**
@@ -701,8 +842,6 @@ public class RecordingFragment extends Fragment implements SensorEventListener {
      */
     @Override
     public void onResume() {
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
         if(!this.settings.getBoolean("split_trajectory", false)) {
             refreshDataHandler.postDelayed(refreshDataTask, 500);
         }

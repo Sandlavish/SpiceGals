@@ -276,12 +276,12 @@ public class PdrProcessing {
         // get horizontal and vertical acceleration magnitude
         float verticalAcc = (float) Math.sqrt(
                 Math.pow((acc[0] * gravity[0]/g),2) +
-                Math.pow((acc[1] * gravity[1]/g), 2) +
-                Math.pow((acc[2] * gravity[2]/g), 2));
+                        Math.pow((acc[1] * gravity[1]/g), 2) +
+                        Math.pow((acc[2] * gravity[2]/g), 2));
         float horizontalAcc = (float) Math.sqrt(
                 Math.pow((acc[0] * (1 - gravity[0]/g)), 2) +
-                Math.pow((acc[1] * (1 - gravity[1]/g)), 2) +
-                Math.pow((acc[2] * (1 - gravity[2]/g)), 2));
+                        Math.pow((acc[1] * (1 - gravity[1]/g)), 2) +
+                        Math.pow((acc[2] * (1 - gravity[2]/g)), 2));
         // Save into buffer to compare with past values
         this.verticalAccel.putNewest(verticalAcc);
         this.horizontalAccel.putNewest(horizontalAcc);
