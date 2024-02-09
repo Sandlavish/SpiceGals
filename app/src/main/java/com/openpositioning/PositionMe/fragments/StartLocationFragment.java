@@ -8,6 +8,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,7 +43,7 @@ public class StartLocationFragment extends Fragment {
     //Start position of the user to be stored
     private float[] startPosition = new float[2];
     //Zoom of google maps
-    private float zoom = 19f;
+    private float zoom = 16f;
 
     private Button startTrackingButton;
 
@@ -124,7 +125,6 @@ public class StartLocationFragment extends Fragment {
                                 type = GoogleMap.MAP_TYPE_HYBRID;
                                 break;
                         }
-                        GlobalVariables.setMapType(type); // Set the global map type
                         mMap.setMapType(type); // Set the map type immediately for current map
                     }
                     @Override
@@ -190,6 +190,20 @@ public class StartLocationFragment extends Fragment {
                 // Navigate to the RecordingFragment
                 NavDirections action = StartLocationFragmentDirections.actionStartLocationFragmentToRecordingFragment();
                 Navigation.findNavController(view).navigate(action);
+            }
+        });
+
+        // New button for saving map type
+        Button saveMapTypeButton = view.findViewById(R.id.saveMapTypeButton);
+        saveMapTypeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Save the selected map type globally
+                GlobalVariables.setMapType(type);
+
+                // Optionally, provide user feedback or navigate
+                Toast.makeText(getContext(), "Map type saved!", Toast.LENGTH_SHORT).show();
+                // If you want to navigate upon saving, you can do that here as well
             }
         });
     }

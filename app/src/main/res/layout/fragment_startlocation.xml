@@ -6,13 +6,6 @@
     android:layout_height="match_parent"
     android:textAlignment="center">
 
-    <Spinner
-        android:id="@+id/mapTypeSpinner"
-        android:layout_width="147dp"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:entries="@array/map_types" />
-
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/startMap"
         android:name="com.google.android.gms.maps.SupportMapFragment"
@@ -31,20 +24,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <Button
-                android:id="@+id/startLocationDone"
-                android:layout_width="150dp"
-                android:layout_height="70dp"
-                android:layout_marginBottom="24dp"
-                android:text="@string/setLocation"
-                android:textSize="24sp"
-                app:icon="@drawable/ic_baseline_add_location_24"
-                app:iconGravity="start"
-                app:iconSize="30dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
-
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -60,7 +39,7 @@
                     app:cardElevation="8dp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.043"
+                    app:layout_constraintVertical_bias="0.022"
                     tools:layout_editor_absoluteX="0dp">
 
                     <TextView
@@ -74,6 +53,48 @@
                         android:textStyle="bold" />
 
                 </androidx.cardview.widget.CardView>
+
+                <Button
+                    android:id="@+id/saveMapTypeButton"
+                    android:layout_width="157dp"
+                    android:layout_height="68dp"
+                    android:text="Save Map Type"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.834"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.962" />
+
+                <Button
+                    android:id="@+id/startLocationDone"
+                    android:layout_width="150dp"
+                    android:layout_height="70dp"
+                    android:text="@string/setLocation"
+                    android:textSize="24sp"
+                    app:icon="@drawable/ic_baseline_add_location_24"
+                    app:iconGravity="start"
+                    app:iconSize="30dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.176"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.965" />
+
+                <Spinner
+                    android:id="@+id/mapTypeSpinner"
+                    android:layout_width="118dp"
+                    android:layout_height="49dp"
+                    android:background="@drawable/spinnerbutton"
+                    android:entries="@array/map_types"
+                    android:textAlignment="center"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.056"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.068" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

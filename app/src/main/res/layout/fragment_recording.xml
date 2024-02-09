@@ -146,7 +146,7 @@
                     android:id="@+id/compass"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginTop="80dp"
+                    android:layout_marginTop="72dp"
                     android:layout_marginEnd="72dp"
                     android:src="@drawable/ic_baseline_navigation_24"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -154,12 +154,14 @@
 
                 <ImageView
                     android:id="@+id/elevatorImage"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="31dp"
+                    android:layout_height="34dp"
                     android:elevation="2dp"
                     android:src="@drawable/ic_baseline_elevator_24"
-                    app:layout_constraintBottom_toBottomOf="@+id/currentElevation"
-                    app:layout_constraintStart_toStartOf="@+id/currentElevation" />
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.277"
+                    tools:layout_editor_absoluteX="16dp" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.cardview.widget.CardView>
 
@@ -178,13 +180,14 @@
             android:id="@+id/mapTypeSpinner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/spinnerbutton"
+            android:padding="8dp"
             android:layout_marginStart="16dp"
             android:entries="@array/map_types"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.106" />
-
+            app:layout_constraintVertical_bias="0.106"/>
         <Button
             android:id="@+id/btnGroundFloor"
             android:layout_width="130dp"

@@ -77,6 +77,14 @@ import java.util.List;
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Polyline userTrajectory;
+
+    LatLng southwestcornerNucleus;
+    LatLng northeastcornerNucleus;
+
+
+    LatLng southwestcornerLibrary;
+    LatLng northeastcornerLibrary;
+
     private Polyline pdrPolyline;
     private float lastBearing = 0; // Store the last bearing to smooth transitions
     private GroundOverlay groundflooroverlay;
@@ -149,9 +157,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private LatLng PDRPOS;
 
-    boolean isUserNearGroundFloor;
+    boolean isUserNearGroundFloor = false;
 
-    boolean isuserNearGroundFloorLibrary;
+    boolean isuserNearGroundFloorLibrary = false;
 
     boolean isUserNeartestingBounds;
     private static final float Q_METRES_PER_SECOND = 0.1f; // Adjust this value based on your needs
@@ -274,11 +282,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private void initializeMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+
         if (mapFragment != null) {
             mapFragment.getMapAsync(this::onMapReady);
         }
-//        float[] startPosition = sensorFusion.getGNSSLatitude(false);
-//        PDRPOS = new LatLng(startPosition[0], startPosition[1]);
+
         PDRPOS = StartLocationFragment.StartLocation;
     }
 
@@ -289,18 +297,26 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         // Set the map type from the global settings
         //mMap.setMapType(StartLocationFragment.type);
 
+        int savedMapType = GlobalVariables.getMapType(); // Assuming you have a getter method in GlobalVariables
+        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        mMap.getUiSettings().setCompassEnabled(true);
+        mMap.getUiSettings().setTiltGesturesEnabled(true);
+        mMap.getUiSettings().setRotateGesturesEnabled(true);
+        mMap.getUiSettings().setScrollGesturesEnabled(true);
+
         setupMapComponents();
 
         LatLng testingsouthwest = new LatLng(55.94233, -3.18956);
         LatLng testingnortheast = new LatLng(55.94300, -3.18851);
 
         // Specify the location where the overlay should be placed
-        LatLng southwestcornerNucleus = new LatLng(55.92278, -3.17465);
-        LatLng northeastcornerNucleus = new LatLng(55.92335, -3.173842);
+
+        southwestcornerNucleus = new LatLng(55.92278, -3.17465);
+        northeastcornerNucleus = new LatLng(55.92335, -3.173842);
 
 
-        LatLng southwestcornerLibrary = new LatLng(55.922738, -3.17517);
-        LatLng northeastcornerLibrary = new LatLng(55.923061, -3.174764);
+        southwestcornerLibrary = new LatLng(55.922738, -3.17517);
+        northeastcornerLibrary = new LatLng(55.923061, -3.174764);
 
 
         TestingBounds= new LatLngBounds(testingsouthwest, testingnortheast);
@@ -473,7 +489,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
         Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
 
-        isUserNearGroundFloor = true;
+        //isUserNearGroundFloor = true;
 
         // Set visibility and enabled state for each button based on user proximity
         btnGroundFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
@@ -532,6 +548,24 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 R.array.map_types, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mapTypeSpinner.setAdapter(adapter);
+
+        int savedMapType = GlobalVariables.getMapType();
+
+        // Determine the spinner position that corresponds to the saved map type
+        int spinnerPosition = 0; // Default to 0 (assuming it's the 'Normal' map type)
+        switch (savedMapType) {
+            case GoogleMap.MAP_TYPE_SATELLITE:
+                spinnerPosition = 1;
+                break;
+            case GoogleMap.MAP_TYPE_TERRAIN:
+                spinnerPosition = 2;
+                break;
+            case GoogleMap.MAP_TYPE_HYBRID:
+                spinnerPosition = 3;
+                break;
+            // Default case for MAP_TYPE_NORMAL is already set by initializing spinnerPosition to 0
+        }
+        mapTypeSpinner.setSelection(spinnerPosition, false); // The second argument 'false' ensures no callback is triggered
 
         mapTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -758,6 +792,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void updatePDRMarker(LatLng position) {
+        isUserNearGroundFloor = ((position.latitude >= southwestcornerNucleus.latitude && position.latitude <= northeastcornerNucleus.latitude)
+                && (position.longitude >= southwestcornerNucleus.longitude && position.longitude <= northeastcornerNucleus.longitude));
+        isuserNearGroundFloorLibrary = ((position.latitude >= southwestcornerLibrary.latitude && position.latitude <= northeastcornerLibrary.latitude)
+                && (position.longitude >= southwestcornerLibrary.longitude && position.longitude <= northeastcornerLibrary.longitude));
         if (mMap != null) {
             if (pdrMarker == null) {
                 // First time: create the marker
@@ -782,13 +820,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         double newLat = startLatLng.latitude + deltaLat;
         double newLon = startLatLng.longitude + deltaLon;
         LatLng newloc = new LatLng(newLat, newLon);
-        //isUserNearGroundFloor = isLocationWithinOverlay(newloc, buildingBounds);
-        //isuserNearGroundFloorLibrary = isLocationWithinOverlay(newloc, buildingBoundsLibrary);
-        //isUserNeartestingBounds = isLocationWithinOverlay(newloc, TestingBounds);
+//        isUserNearGroundFloor = ((newloc.latitude >= southwestcornerNucleus.latitude && newloc.latitude <= northeastcornerNucleus.latitude)
+//                && (newloc.longitude >= southwestcornerNucleus.longitude && newloc.longitude <= northeastcornerNucleus.longitude));
+//        isUserNearGroundFloor = ((newloc.latitude >= southwestcornerLibrary.latitude && newloc.latitude <= northeastcornerLibrary.latitude)
+//                && (newloc.longitude >= southwestcornerLibrary.longitude && newloc.longitude <= northeastcornerLibrary.longitude));
 
         return new LatLng(newLat, newLon);
-
-
     }
 
     private Polyline pdrPath; // Field to hold the PDR path

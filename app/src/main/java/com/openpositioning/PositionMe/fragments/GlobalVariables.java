@@ -21,7 +21,7 @@ public class GlobalVariables {
     private static final GlobalVariables instance = new GlobalVariables();
 
     // Map type variable
-    public static int mapType = GoogleMap.MAP_TYPE_NORMAL; // Default map type
+    private static int mapType = GoogleMap.MAP_TYPE_NORMAL; // Default map type
 
     // Private constructor to prevent instantiation
     private GlobalVariables() {
