@@ -91,7 +91,7 @@ public class StartLocationFragment extends Fragment {
              */
             @Override
             public void onMapReady(GoogleMap mMap) {
-                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                mMap.setMapType(GlobalVariables.getMapType());
                 mMap.getUiSettings().setCompassEnabled(true);
                 mMap.getUiSettings().setTiltGesturesEnabled(true);
                 mMap.getUiSettings().setRotateGesturesEnabled(true);

@@ -55,8 +55,8 @@ public class PdrProcessing {
     private float startElevation;
     private int setupIndex = 0;
     private float elevation;
-    private int floorHeight;
-    private int currentFloor;
+    private float floorHeight;
+    public static int currentFloor;
 
     // Buffer of most recent elevations calculated
     private CircularFloatBuffer elevationList;
@@ -120,7 +120,7 @@ public class PdrProcessing {
         }
 
         // Distance between floors is building dependent, use manual value
-        this.floorHeight = settings.getInt("floor_height", 4);
+        this.floorHeight = settings.getFloat("floor_height", 4.2f);
         // Array for holding initial values
         this.startElevationBuffer = new Float[3];
         // Start floor - assumed to be zero
@@ -358,7 +358,7 @@ public class PdrProcessing {
         }
 
         // Distance between floors is building dependent, use manual value
-        this.floorHeight = settings.getInt("floor_height", 4);
+        this.floorHeight = settings.getFloat("floor_height", 4.0f);
         // Array for holding initial values
         this.startElevationBuffer = new Float[3];
         // Start floor - assumed to be zero
