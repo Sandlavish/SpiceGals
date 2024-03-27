@@ -18,7 +18,6 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsetsAnimation;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
@@ -170,9 +169,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private LatLng PDRPOS;
 
-    boolean isUserNearGroundFloor = false;
+    boolean isUserNearGroundFloor;
 
-    boolean isuserNearGroundFloorLibrary = false;
+    boolean isuserNearGroundFloorLibrary;
 
     boolean isUserNeartestingBounds;
     private static final float Q_METRES_PER_SECOND = 0.1f; // Adjust this value based on your needs
@@ -318,77 +317,46 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         mMap.getUiSettings().setScrollGesturesEnabled(true);
 
         setupMapComponents();
+        setupGroundOverlays();
 
-        LatLng testingsouthwest = new LatLng(55.94233, -3.18956);
-        LatLng testingnortheast = new LatLng(55.94300, -3.18851);
+    }
+    private void setupGroundOverlays() {
+        defineOverlayBounds();
+        createAndAddOverlays();
+    }
 
-        // Specify the location where the overlay should be placed
+    private void createAndAddOverlays() {
+        // Nucleus Overlays
+        groundflooroverlay = addOverlay(R.drawable.nucleusg, buildingBounds);
+        firstflooroverlay = addOverlay(R.drawable.nucleus1, buildingBounds);
+        secondflooroverlay = addOverlay(R.drawable.nucleus2, buildingBounds);
+        thirdflooroverlay = addOverlay(R.drawable.nucleus3, buildingBounds);
 
+        // Library Overlays
+        librarygroundflooroverlay = addOverlay(R.drawable.libraryg, buildingBoundsLibrary);
+        libraryfirstflooroverlay = addOverlay(R.drawable.library1, buildingBoundsLibrary);
+        librarysecondflooroverlay = addOverlay(R.drawable.library2, buildingBoundsLibrary);
+        librarythirdflooroverlay = addOverlay(R.drawable.library3, buildingBoundsLibrary);
+
+    }
+
+    private void defineOverlayBounds() {
+        // Initialize LatLng for corners
         southwestcornerNucleus = new LatLng(55.92278, -3.17465);
         northeastcornerNucleus = new LatLng(55.92335, -3.173842);
-
-
         southwestcornerLibrary = new LatLng(55.922738, -3.17517);
         northeastcornerLibrary = new LatLng(55.923061, -3.174764);
 
+        // Initialize LatLngBounds
+        buildingBounds = new LatLngBounds(southwestcornerNucleus, northeastcornerNucleus);
+        buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary);
+    }
 
-        TestingBounds= new LatLngBounds(testingsouthwest, testingnortheast);
-        buildingBounds = new LatLngBounds(southwestcornerNucleus, northeastcornerNucleus); //building bounds for the Nucleus
-        buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary); //building bounds for the library
-
-
-        // Create GroundOverlayOptions
-        GroundOverlayOptions groundfloorOverlayOptions = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleusg))
-                .transparency(0.5f)
-                .positionFromBounds(buildingBounds);// Set the position and width (the height will be auto-calculated)
-
-        GroundOverlayOptions firstFloorOverlayOptions = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus1))
-                .transparency(0.5f)
-                .positionFromBounds(buildingBounds);
-
-        GroundOverlayOptions secondFloorOverlayOptions = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus2))
-                .transparency(0.5f)
-                .positionFromBounds(buildingBounds);
-
-        GroundOverlayOptions thirdFloorOverlayOptions = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.nucleus3))
-                .transparency(0.5f)
-                .positionFromBounds(buildingBounds);
-
-        GroundOverlayOptions librarygroundfloor = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.libraryg))
-                .positionFromBounds(buildingBoundsLibrary)
-                .transparency(0.5f);
-        GroundOverlayOptions libraryfirstfloor = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.library1))
-                .positionFromBounds(buildingBoundsLibrary)
-                .transparency(0.5f);
-        GroundOverlayOptions librarysecondfloor = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.library2))
-                .positionFromBounds(buildingBoundsLibrary)
-                .transparency(0.5f);
-        GroundOverlayOptions librarythirdfloor = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.library3))
-                .positionFromBounds(buildingBoundsLibrary)
-                .transparency(0.5f);
-
-        // Add the overlay to the map
-        groundflooroverlay = mMap.addGroundOverlay(groundfloorOverlayOptions);
-        firstflooroverlay = mMap.addGroundOverlay(firstFloorOverlayOptions);
-        secondflooroverlay = mMap.addGroundOverlay(secondFloorOverlayOptions);
-        thirdflooroverlay = mMap.addGroundOverlay(thirdFloorOverlayOptions);
-
-        librarygroundflooroverlay = mMap.addGroundOverlay(librarygroundfloor);
-        libraryfirstflooroverlay = mMap.addGroundOverlay(libraryfirstfloor);
-        librarysecondflooroverlay = mMap.addGroundOverlay(librarysecondfloor);
-        librarythirdflooroverlay = mMap.addGroundOverlay(librarythirdfloor);
-
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(buildingBoundsLibrary, 10)); // '100' is padding around bounds
-
+    private GroundOverlay addOverlay(int resourceId, LatLngBounds bounds) {
+        return mMap.addGroundOverlay(new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(resourceId))
+                .positionFromBounds(bounds)
+                .transparency(0.5f)); // Adjust transparency as needed
     }
 
     private void updateFloorOverlay() {
@@ -429,10 +397,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private boolean isLocationWithinOverlay(LatLng location, LatLngBounds overlayBounds) {
-        return overlayBounds.contains(location);
-    }
-
     private void handleLocationUpdates(LocationResult locationResult) {
         if (locationResult == null) {
             return;
@@ -441,21 +405,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         for (Location location : locationResult.getLocations()) {
             // Add a marker to show the GNSS position
             LatLng gnssLatLng = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-            //Add a circle to show the positioning error (accuracy)
-//            float accuracy = location.getAccuracy(); // The accuracy, in meters, as a radius
-//                                    mMap.addCircle(new CircleOptions()
-//                                            .center(gnssLatLng)
-//                                            .radius(accuracy) // Set the radius to the accuracy of the location
-//                                            .strokeColor(Color.argb(50, 0, 0, 255)) // Semi-transparent blue for the stroke
-//                                            .fillColor(Color.argb(30, 0, 0, 255))); // Lighter, more transparent blue for the fill
 
             if (kalmanFilter.get_accuracy() < 0) {
                 kalmanFilter.SetState(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
             } else {
                 kalmanFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime(), Q_METRES_PER_SECOND);
             }
-
-
             //Use the filtered coordinates
             LatLng newLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
 
@@ -468,8 +423,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 userLocationMarker.setPosition(newLocation);
             }
 
-            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 19));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
             points.add(newLocation); // Use the already declared 'points' variable
+
+            // Check if the new location is within the bounds of either building
+            isUserNearGroundFloor = buildingBounds.contains(newLocation);
+            isuserNearGroundFloorLibrary = buildingBoundsLibrary.contains(newLocation);
         }
         userTrajectory.setPoints(points);
     }
@@ -481,6 +440,37 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
         vectorDrawable.draw(canvas);
         return bitmap;
+    }
+
+    private enum Floor {
+        GROUND, FIRST, SECOND, THIRD
+    }
+
+    private void selectFloor(Floor floor) {
+        // Reset all flags
+        userIsOnGroundFloor = false;
+        userIsOnFirstFloor = false;
+        userIsOnSecondFloor = false;
+        userIsOnThirdFloor = false;
+
+        // Set the flag for the selected floor to true
+        switch (floor) {
+            case GROUND:
+                userIsOnGroundFloor = true;
+                break;
+            case FIRST:
+                userIsOnFirstFloor = true;
+                break;
+            case SECOND:
+                userIsOnSecondFloor = true;
+                break;
+            case THIRD:
+                userIsOnThirdFloor = true;
+                break;
+        }
+
+        // Update the floor overlay to reflect the current selection
+        updateFloorOverlay();
     }
 
 
@@ -502,9 +492,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
         Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
 
-//        isUserNearGroundFloor = true;
-//        isuserNearGroundFloorLibrary = true;
-
+        //isUserNearGroundFloor = true;
+        //isuserNearGroundFloorLibrary = true;
 
         // Set visibility and enabled state for each button based on user proximity
         btnGroundFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
@@ -518,50 +507,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         btnThirdFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
 
 
-        // Define click listeners for each floor button
-        btnGroundFloor.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userIsOnGroundFloor = true;
-                userIsOnFirstFloor = false;
-                userIsOnSecondFloor = false;
-                userIsOnThirdFloor = false;
-                updateFloorOverlay();
-            }
-        });
+        btnGroundFloor.setOnClickListener(v -> selectFloor(Floor.GROUND));
+        btnFirstFloor.setOnClickListener(v -> selectFloor(Floor.FIRST));
+        btnSecondFloor.setOnClickListener(v -> selectFloor(Floor.SECOND));
+        btnThirdFloor.setOnClickListener(v -> selectFloor(Floor.THIRD));
 
-        btnFirstFloor.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userIsOnFirstFloor = true;
-                userIsOnGroundFloor = false;
-                userIsOnSecondFloor = false;
-                userIsOnThirdFloor = false;
-                updateFloorOverlay();
-            }
-        });
-
-        btnSecondFloor.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userIsOnFirstFloor = false;
-                userIsOnGroundFloor = false;
-                userIsOnSecondFloor = true;
-                userIsOnThirdFloor = false;
-                updateFloorOverlay();
-            }
-        });
-
-        btnThirdFloor.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userIsOnFirstFloor = false;
-                userIsOnGroundFloor = false;
-                userIsOnSecondFloor = false;
-                userIsOnThirdFloor = true;
-                updateFloorOverlay();
-            }
-        });
 
         Spinner mapTypeSpinner = view.findViewById(R.id.mapTypeSpinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
@@ -786,31 +736,23 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     && (pdrLatLng.longitude >= southwestcornerNucleus.longitude && pdrLatLng.longitude <= northeastcornerNucleus.longitude));
             isuserNearGroundFloorLibrary = ((pdrLatLng.latitude >= southwestcornerLibrary.latitude && pdrLatLng.latitude <= northeastcornerLibrary.latitude)
                     && (pdrLatLng.longitude >= southwestcornerLibrary.longitude && pdrLatLng.longitude <= northeastcornerLibrary.longitude));
+            updateFloorBasedOnElevation(elevationVal);
+        }
+    }
 
-            if (isUserNearGroundFloor || isuserNearGroundFloorLibrary){
+    private void updateFloorBasedOnElevation(float elevation) {
+        // Only proceed if the user is near a relevant area
+        if (!isUserNearGroundFloor && !isuserNearGroundFloorLibrary) return;
 
-                if (elevationVal <= GROUND_FLOOR_MAX_ELEVATION) {
-                    userIsOnGroundFloor = true;
-                    userIsOnFirstFloor = false;
-                    userIsOnSecondFloor = false;
-                    userIsOnThirdFloor = false;
-                } else if (elevationVal >= FIRST_FLOOR_MIN_ELEVATION && elevationVal <= FIRST_FLOOR_MAX_ELEVATION) {
-                    userIsOnGroundFloor = false;
-                    userIsOnFirstFloor = true;
-                    userIsOnSecondFloor = false;
-                    userIsOnThirdFloor = false;
-                } else if (elevationVal >= SECOND_FLOOR_MIN_ELEVATION && elevationVal <= SECOND_FLOOR_MAX_ELEVATION) {
-                    userIsOnGroundFloor = false;
-                    userIsOnSecondFloor = true;
-                    userIsOnFirstFloor = false;
-                    userIsOnThirdFloor = false;
-                } else if (elevationVal >= THIRD_FLOOR_MIN_ELEVATION && elevationVal <= THIRD_FLOOR_MAX_ELEVATION) {
-                    userIsOnGroundFloor = false;
-                    userIsOnThirdFloor = true;
-                    userIsOnSecondFloor = false;
-                    userIsOnFirstFloor = false;
-                }
-            }
+        // Determine the floor based on the elevation value
+        if (elevation <= GROUND_FLOOR_MAX_ELEVATION) {
+            selectFloor(Floor.GROUND);
+        } else if (elevation >= FIRST_FLOOR_MIN_ELEVATION && elevation <= FIRST_FLOOR_MAX_ELEVATION) {
+            selectFloor(Floor.FIRST);
+        } else if (elevation >= SECOND_FLOOR_MIN_ELEVATION && elevation <= SECOND_FLOOR_MAX_ELEVATION) {
+            selectFloor(Floor.SECOND);
+        } else if (elevation >= THIRD_FLOOR_MIN_ELEVATION && elevation <= THIRD_FLOOR_MAX_ELEVATION) {
+            selectFloor(Floor.THIRD);
         }
     }
 
