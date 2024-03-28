@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,10 +50,14 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
+import com.openpositioning.PositionMe.ServerCommunications;
+import com.openpositioning.PositionMe.sensors.LocationResponse;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
+import com.openpositioning.PositionMe.sensors.WifiFPManager;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 
 /**
  * A simple {@link Fragment} subclass. The recording fragment is displayed while the app is actively
@@ -142,7 +147,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private boolean userIsOnSecondFloor = false; // Default to ground floor
     private boolean userIsOnThirdFloor = false; // Default to ground floor
 
-    private Marker pdrMarker;
+    private Marker pdrMarker, wifiMarker;
     private float previousPosX;
     private float previousPosY;
 
@@ -152,6 +157,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
+
+    private WifiFPManager wifiFPManager;
+    private ServerCommunications serverCommunications;
 
     private LatLng PDRPOS;
 
@@ -245,6 +253,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         this.settings = PreferenceManager.getDefaultSharedPreferences(context);
         this.refreshDataHandler = new Handler();
         this.kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND); // Ensure you have defined Q_METRES_PER_SECOND appropriately
+        this.wifiFPManager = WifiFPManager.getInstance();
+        serverCommunications = new ServerCommunications(context);
     }
 
     /**
@@ -686,6 +696,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
 
             updatePDRPosition();
+            fetchLocationAndAddMarker();
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
@@ -721,6 +732,31 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     && (pdrLatLng.longitude >= southwestcornerLibrary.longitude && pdrLatLng.longitude <= northeastcornerLibrary.longitude));
             updateFloorBasedOnElevation(elevationVal);
         }
+    }
+
+    private void fetchLocationAndAddMarker() {
+        Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                String wifiFingerprintJson = wifiFPManager.createWifiFingerprintJson();
+                LocationResponse locationResponse = serverCommunications.sendWifiFingerprintToServer(wifiFingerprintJson);
+
+                getActivity().runOnUiThread(() -> {
+                    Log.d("RecordingFragment", "Attempting to add Wi-Fi marker.");
+                    LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
+                    Log.d("RecordingFragment", "LatLong: " + wifiLocation);
+                    if (wifiMarker == null) {
+                        wifiMarker = mMap.addMarker(new MarkerOptions()
+                                .position(wifiLocation)
+                                .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_add_location_24)))
+                                .visible(true));
+                    } else {
+                        wifiMarker.setPosition(wifiLocation);
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
+            }
+        });
     }
 
     private void updateFloorBasedOnElevation(float elevation) {
