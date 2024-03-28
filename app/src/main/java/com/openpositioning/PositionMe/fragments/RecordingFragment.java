@@ -1,16 +1,10 @@
 package com.openpositioning.PositionMe.fragments;
-
-import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -40,15 +34,11 @@ import androidx.preference.PreferenceManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -76,7 +66,13 @@ import java.util.List;
  */
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
+    private static final float DEFAULT_ACCURACY = 0.5f ;
     private Polyline userTrajectory;
+
+    private Handler gnssUpdateHandler;
+    private Runnable gnssUpdateTask;
+
+    private float[] gnssLocation;
 
     LatLng southwestcornerNucleus;
     LatLng northeastcornerNucleus;
@@ -87,7 +83,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     LatLng northeastcornerLibrary;
 
     private Polyline pdrPolyline;
-    private float lastBearing = 0; // Store the last bearing to smooth transitions
     private GroundOverlay groundflooroverlay;
     private GroundOverlay firstflooroverlay;
     private GroundOverlay secondflooroverlay;
@@ -105,13 +100,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private final float THIRD_FLOOR_MIN_ELEVATION = 12.8f;
     private final float THIRD_FLOOR_MAX_ELEVATION = 17f;
 
-    private SensorManager sensorManager;
-    private Sensor accelerometer;
-    private Sensor magnetometer;
-    float[] accelerometerReading = new float[3];
-    float[] magnetometerReading = new float[3];
-    float[] rotationMatrix = new float[9];
-    float[] orientationAngles = new float[3];
     //Button to end PDR recording
     private Button stopButton;
     private Button cancelButton;
@@ -149,8 +137,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     //variables to store data of the trajectory
     private float distance;
 
-    private double net_change;
-
     private boolean userIsOnFirstFloor = false; // Default to ground floor
     private boolean userIsOnGroundFloor = false; //Ground floor is only visible when we are near the building
     private boolean userIsOnSecondFloor = false; // Default to ground floor
@@ -173,8 +159,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     boolean isuserNearGroundFloorLibrary;
 
-    boolean isUserNeartestingBounds;
-    private static final float Q_METRES_PER_SECOND = 0.1f; // Adjust this value based on your needs
+    private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
     private KalmanLatLong kalmanFilter;
     /**
@@ -204,20 +189,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         public KalmanLatLong(float Q_metres_per_second) {
             this.Q_metres_per_second = Q_metres_per_second;
             variance = -1;
-        }
-        private double updateStepLength() {
-            // Update and return the new step length
-            return 0.75; // Example fixed value; replace with actual computation
-        }
-
-        private double updateHeading() {
-            // Update and return the new heading
-            return 45; // Example fixed value; replace with actual computation
-        }
-        // Method to update PDR position based on the current position, step length, and heading
-
-        public long get_TimeStamp() {
-            return TimeStamp_milliseconds;
         }
 
         public double get_lat() {
@@ -306,9 +277,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Set the map type from the global settings
-        //mMap.setMapType(StartLocationFragment.type);
-
         int savedMapType = GlobalVariables.getMapType(); // Assuming you have a getter method in GlobalVariables
         mMap.setMapType(GlobalVariables.getMapType());
         mMap.getUiSettings().setCompassEnabled(true);
@@ -376,62 +344,27 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private void setupMapComponents() {
         userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED));
         pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
-
-        configureLocationUpdates();
+        gnssLocation = sensorFusion.getGNSSLatitude(false);
     }
 
-    private void configureLocationUpdates() {
-        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationRequest locationRequest = LocationRequest.create();
-            locationRequest.setInterval(5000);
-            locationRequest.setFastestInterval(2500);
-            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-            FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getContext());
-            locationCallback = new LocationCallback() {
-                @Override
-                public void onLocationResult(LocationResult locationResult) {
-                    handleLocationUpdates(locationResult);
-                }
-            };
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
-        }
-    }
-
-    private void handleLocationUpdates(LocationResult locationResult) {
-        if (locationResult == null) {
+    private void handleLocationUpdates() {
+        if (gnssLocation == null) {
             return;
         }
-        List<LatLng> points = userTrajectory.getPoints();
-        for (Location location : locationResult.getLocations()) {
-            // Add a marker to show the GNSS position
-            LatLng gnssLatLng = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+        double latitude = gnssLocation[0];
+        double longitude = gnssLocation[1];
 
-            if (kalmanFilter.get_accuracy() < 0) {
-                kalmanFilter.SetState(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
-            } else {
-                kalmanFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime(), Q_METRES_PER_SECOND);
-            }
-            //Use the filtered coordinates
-            LatLng newLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+        // Create a new LatLng object for the GNSS location
+        LatLng newLocation = new LatLng(latitude, longitude);
 
+        // Update the map with the new location
+        updateMap(newLocation);
 
-            if (userLocationMarker == null) {
-                userLocationMarker = mMap.addMarker(new MarkerOptions()
-                        .position(newLocation)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
-            } else {
-                userLocationMarker.setPosition(newLocation);
-            }
-
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
-            points.add(newLocation); // Use the already declared 'points' variable
-
-            // Check if the new location is within the bounds of either building
-            isUserNearGroundFloor = buildingBounds.contains(newLocation);
-            isuserNearGroundFloorLibrary = buildingBoundsLibrary.contains(newLocation);
-        }
-        userTrajectory.setPoints(points);
+        //updateMap(newLocation); // Update the map with the new location
+        isUserNearGroundFloor = buildingBounds.contains(newLocation);
+        isuserNearGroundFloorLibrary = buildingBoundsLibrary.contains(newLocation);
     }
+
 
     private Bitmap getBitmapFromVector(Context context, int vectorResId) {
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
@@ -473,6 +406,36 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         updateFloorOverlay();
     }
 
+    private void processLocationWithKalmanFilter(float[] gnssLocation) {
+        double latitude = gnssLocation[0];
+        double longitude = gnssLocation[1];
+
+        if (kalmanFilter.get_accuracy() < 0) {
+            // If Kalman filter is uninitialized, initialize with the current GNSS data
+            kalmanFilter.SetState(latitude, longitude, DEFAULT_ACCURACY, System.currentTimeMillis());
+        } else {
+            // Process the new GNSS data through the Kalman filter
+            kalmanFilter.Process(latitude, longitude, DEFAULT_ACCURACY, System.currentTimeMillis(), Q_METRES_PER_SECOND);
+        }
+
+        // Use the filtered coordinates to update the map or UI
+        LatLng filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+        updateMap(filteredLocation);
+    }
+
+    private void updateMap(LatLng newLocation) {
+        if (userLocationMarker == null) {
+            userLocationMarker = mMap.addMarker(new MarkerOptions()
+                    .position(newLocation)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+        } else {
+            // Update the marker's position to the new, filtered location
+            userLocationMarker.setPosition(newLocation);
+        }
+        // Consider not animating the camera every update to avoid jitter
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
+    }
+
 
     /**
      * {@inheritDoc}
@@ -492,6 +455,27 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
         Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
 
+        // Initialize the Handler and Runnable for GNSS updates
+        gnssUpdateHandler = new Handler(Looper.getMainLooper());
+        gnssUpdateTask = new Runnable() {
+            @Override
+            public void run() {
+                // Fetch GNSS data from SensorFusion
+                gnssLocation = sensorFusion.getGNSSLatitude(false); // False indicates we're not fetching the initial start location
+
+                // Process GNSS data through the Kalman filter
+                processLocationWithKalmanFilter(gnssLocation);
+
+                handleLocationUpdates();
+
+                // Schedule the next execution of this task
+                gnssUpdateHandler.postDelayed(this, 2000); // Adjust the delay as needed
+            }
+        };
+
+        // Start the GNSS update task
+        gnssUpdateHandler.post(gnssUpdateTask);
+
         //isUserNearGroundFloor = true;
         //isuserNearGroundFloorLibrary = true;
 
@@ -505,7 +489,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         btnFirstFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
         btnSecondFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
         btnThirdFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
-
 
         btnGroundFloor.setOnClickListener(v -> selectFloor(Floor.GROUND));
         btnFirstFloor.setOnClickListener(v -> selectFloor(Floor.FIRST));
@@ -716,7 +699,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             else elevatorIcon.setVisibility(View.GONE);
 
             //Rotate compass image to heading angle
-            compassIcon.setRotation((float) -Math.toDegrees(sensorFusion.passOrientation()));
+            compassIcon.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
 
             // Loop the task again to keep refreshing the data
             refreshDataHandler.postDelayed(refreshDataTask, 500);
@@ -758,12 +741,16 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private void updatePDRMarker(LatLng position) {
         if (mMap != null) {
+            float bearing = sensorFusion.passOrientation(); // Replace with actual method to get bearing
             if (pdrMarker == null) {
-                // First time: create the marker
-                pdrMarker = mMap.addMarker(new MarkerOptions().position(position).title("PDR Position")
-                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))); // Customize as needed
+                pdrMarker = mMap.addMarker(new MarkerOptions()
+                        .position(position)
+                        .title("PDR Position")
+                        .rotation(bearing)
+                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))
+                        .anchor(0.5f, 0.5f)); // Ensure the marker rotates around its center
             } else {
-                // Subsequent times: just update the position
+                pdrMarker.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
                 pdrMarker.setPosition(position);
             }
         }
@@ -827,8 +814,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      */
     @Override
     public void onPause() {
-        refreshDataHandler.removeCallbacks(refreshDataTask);
         super.onPause();
+        gnssUpdateHandler.removeCallbacks(gnssUpdateTask);
     }
 
     /**
@@ -837,9 +824,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      */
     @Override
     public void onResume() {
-        if(!this.settings.getBoolean("split_trajectory", false)) {
-            refreshDataHandler.postDelayed(refreshDataTask, 500);
-        }
         super.onResume();
+        if (gnssUpdateTask != null) {
+            gnssUpdateHandler.post(gnssUpdateTask);
+        }
     }
 }
