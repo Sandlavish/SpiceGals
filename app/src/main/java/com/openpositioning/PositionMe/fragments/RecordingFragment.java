@@ -299,6 +299,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(true);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 16f ));
 
         setupMapComponents();
         setupGroundOverlays();
@@ -449,7 +450,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             userLocationMarker.setPosition(newLocation);
         }
         // Consider not animating the camera every update to avoid jitter
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
+        //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
 
@@ -773,8 +774,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                         } else {
                             wifiMarker.setPosition(wifiLocation);
                         }
-                        // Optionally, move the camera
-                        mMap.animateCamera(CameraUpdateFactory.newLatLng(wifiLocation));
                     }
 
                     // Update the list of recent locations
@@ -782,9 +781,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
-                getActivity().runOnUiThread(() -> {
-                    Toast.makeText(getContext(), "Error fetching location: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
             }
         });
     }
