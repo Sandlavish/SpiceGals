@@ -23,6 +23,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -56,6 +57,7 @@ import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
 import com.openpositioning.PositionMe.sensors.WifiFPManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -168,6 +170,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     boolean isuserNearGroundFloorLibrary;
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
+
+    private List<LatLng> recentWifiLocations = new ArrayList<>();
+    private static final int MAX_RECENT_LOCATIONS = 5;
+    private static final double OUTLIER_THRESHOLD_METERS = 10;
 
     private KalmanLatLong kalmanFilter;
     /**
@@ -741,22 +747,96 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 LocationResponse locationResponse = serverCommunications.sendWifiFingerprintToServer(wifiFingerprintJson);
 
                 getActivity().runOnUiThread(() -> {
-                    Log.d("RecordingFragment", "Attempting to add Wi-Fi marker.");
+                    Log.d("RecordingFragment", "Received Wi-Fi location.");
+
                     LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
-                    Log.d("RecordingFragment", "LatLong: " + wifiLocation);
-                    if (wifiMarker == null) {
-                        wifiMarker = mMap.addMarker(new MarkerOptions()
-                                .position(wifiLocation)
-                                .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_add_location_24)))
-                                .visible(true));
-                    } else {
-                        wifiMarker.setPosition(wifiLocation);
+
+                    // Simple no coverage detection based on invalid LatLng
+                    if (Double.isNaN(wifiLocation.latitude) || Double.isNaN(wifiLocation.longitude)) {
+                        Log.e("RecordingFragment", "No coverage: Invalid Wi-Fi location.");
+                        Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
+                        return; // Exit early
                     }
+
+                    // Outlier detection: only add marker if within a reasonable distance from previous locations
+                    if (isOutlier(wifiLocation)) {
+                        Log.e("RecordingFragment", "Detected outlier Wi-Fi location.");
+                        Toast.makeText(getContext(), "Outlier detected, location not updated", Toast.LENGTH_LONG).show();
+                    } else {
+                        // Not an outlier, update the map
+                        if (wifiMarker == null) {
+                            wifiMarker = mMap.addMarker(new MarkerOptions()
+                                    .position(wifiLocation)
+                                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_add_location_24)))
+                                    .visible(true)
+                            );
+                        } else {
+                            wifiMarker.setPosition(wifiLocation);
+                        }
+                        // Optionally, move the camera
+                        mMap.animateCamera(CameraUpdateFactory.newLatLng(wifiLocation));
+                    }
+
+                    // Update the list of recent locations
+                    updateRecentLocations(wifiLocation);
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
+                getActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "Error fetching location: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
             }
         });
+    }
+
+    private boolean isOutlier(LatLng newLocation) {
+        //consider a location an outlier if it's too far from the average of recent locations
+        if (recentWifiLocations.isEmpty()) {
+            return false; // No history to compare against
+        }
+
+        LatLng averageLocation = getAverageLocation(recentWifiLocations);
+        double distanceToAverage = calculateDistanceBetween(averageLocation, newLocation);
+        return distanceToAverage > OUTLIER_THRESHOLD_METERS;
+    }
+
+    private void updateRecentLocations(LatLng newLocation) {
+        recentWifiLocations.add(newLocation);
+        if (recentWifiLocations.size() > MAX_RECENT_LOCATIONS) {
+            recentWifiLocations.remove(0); // Keep the list size fixed
+        }
+    }
+
+    private LatLng getAverageLocation(List<LatLng> locations) {
+        double sumLat = 0;
+        double sumLng = 0;
+        for (LatLng loc : locations) {
+            sumLat += loc.latitude;
+            sumLng += loc.longitude;
+        }
+        return new LatLng(sumLat / locations.size(), sumLng / locations.size());
+    }
+
+    // Distance between 2 latlongs
+    private double calculateDistanceBetween(LatLng pos1, LatLng pos2) {
+        final int R = 6371; // Radius of the earth in kilometers
+
+        double lat1 = pos1.latitude;
+        double lon1 = pos1.longitude;
+        double lat2 = pos2.latitude;
+        double lon2 = pos2.longitude;
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = R * c * 1000; // convert to meters
+
+        return distance;
     }
 
     private void updateFloorBasedOnElevation(float elevation) {
