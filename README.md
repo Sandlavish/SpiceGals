@@ -30,3 +30,8 @@ Indoor poistioning data collection application created for the University of Edi
 
 ### New contributors
 - Francisco Zampella (fzampella-huawei)
+
+### Contributors 
+- Michalis Voudaskas 
+- Apoorv Tewari 
+- Batu Bayram
