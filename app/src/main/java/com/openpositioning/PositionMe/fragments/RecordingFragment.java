@@ -171,7 +171,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
+    // Fields to store recent locations
+    private List<LatLng> recentGNSSLocations = new ArrayList<>();
     private List<LatLng> recentWifiLocations = new ArrayList<>();
+
     private static final int MAX_RECENT_LOCATIONS = 5;
     private static final double OUTLIER_THRESHOLD_METERS = 10;
 
@@ -373,7 +376,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Create a new LatLng object for the GNSS location
         LatLng newLocation = new LatLng(latitude, longitude);
-
+        updateGnssLocations(newLocation);
         // Update the map with the new location
         updateMap(newLocation);
 
@@ -777,7 +780,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     }
 
                     // Update the list of recent locations
-                    updateRecentLocations(wifiLocation);
+                    updateWifiLocations(wifiLocation);
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
@@ -796,10 +799,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distanceToAverage > OUTLIER_THRESHOLD_METERS;
     }
 
-    private void updateRecentLocations(LatLng newLocation) {
+    private void updateWifiLocations(LatLng newLocation) {
         recentWifiLocations.add(newLocation);
         if (recentWifiLocations.size() > MAX_RECENT_LOCATIONS) {
             recentWifiLocations.remove(0); // Keep the list size fixed
+        }
+    }
+
+    private void updateGnssLocations(LatLng newLocation) {
+        recentGNSSLocations.add(newLocation);
+        if (recentGNSSLocations.size() > MAX_RECENT_LOCATIONS) {
+            recentGNSSLocations.remove(0); // Keep the list size fixed
         }
     }
 
