@@ -174,6 +174,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     // Fields to store recent locations
     private List<LatLng> recentGNSSLocations = new ArrayList<>();
     private List<LatLng> recentWifiLocations = new ArrayList<>();
+    private List<Marker> gnssMarkers = new ArrayList<>();
+    private List<Marker> wifiMarkers = new ArrayList<>();
 
     private static final int MAX_RECENT_LOCATIONS = 5;
     private static final double OUTLIER_THRESHOLD_METERS = 10;
@@ -377,6 +379,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         // Create a new LatLng object for the GNSS location
         LatLng newLocation = new LatLng(latitude, longitude);
         updateGnssLocations(newLocation);
+        updateLocationMarkers();
         // Update the map with the new location
         updateMap(newLocation);
 
@@ -489,7 +492,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 handleLocationUpdates();
 
                 // Schedule the next execution of this task
-                gnssUpdateHandler.postDelayed(this, 2000); // Adjust the delay as needed
+                gnssUpdateHandler.postDelayed(this, 1000); // Adjust the delay as needed
             }
         };
 
@@ -781,6 +784,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
                     // Update the list of recent locations
                     updateWifiLocations(wifiLocation);
+                    updateLocationMarkers();
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
@@ -909,6 +913,37 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 points.add(newPosition);
                 pdrPath.setPoints(points);
             }
+        }
+    }
+    private void updateLocationMarkers() {
+        // Clear previous markers
+        for (Marker marker : gnssMarkers) {
+            marker.remove();
+        }
+        gnssMarkers.clear();
+
+        for (Marker marker : wifiMarkers) {
+            marker.remove();
+        }
+        wifiMarkers.clear();
+
+        // Add new GNSS markers
+        for (LatLng location : recentGNSSLocations) {
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                            .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_pink_dot_24)))); // GNSS in pink
+            gnssMarkers.add(marker);
+        }
+
+        // Add new Wi-Fi markers
+        for (LatLng location : recentWifiLocations) {
+            boolean isOutlierLocation = isOutlier(location);
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(),
+                            isOutlierLocation ? R.drawable.ic_baseline_yellow_dot_24 : R.drawable.ic_baseline_purple_dot_24
+                    )))); // Yellow for outlier, otherwise purple
+            wifiMarkers.add(marker);
         }
     }
 
