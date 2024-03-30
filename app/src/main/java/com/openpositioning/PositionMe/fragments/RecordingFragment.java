@@ -92,16 +92,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private PdrProcessing pdrProcessing;
 
-    public static LatLng southwestcornerLibrary = FloorOverlayManager.southwestcornerLibrary;
-    public static LatLng northeastcornerLibrary = FloorOverlayManager.northeastcornerLibrary;
-
-    private final float GROUND_FLOOR_MAX_ELEVATION = 4.2f;
-    private final float FIRST_FLOOR_MIN_ELEVATION = 4.2f;
-    private final float FIRST_FLOOR_MAX_ELEVATION = 8.6f;
-    private final float SECOND_FLOOR_MIN_ELEVATION = 8.6f;
-    private final float SECOND_FLOOR_MAX_ELEVATION = 12.8f;
-    private final float THIRD_FLOOR_MIN_ELEVATION = 12.8f;
-    private final float THIRD_FLOOR_MAX_ELEVATION = 17f;
 
     //Button to end PDR recording
     private Button stopButton;
@@ -151,10 +141,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Boolean wasPreviouslyOutdoor = null; // null indicates no previous status
 
     private LatLng PDRPOS;
-
-    boolean isUserNearGroundFloor;
-
-    boolean isuserNearGroundFloorLibrary;
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
