@@ -45,6 +45,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
@@ -137,6 +138,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
     private KalmanLatLong kalmanFilter;
+    //Particle Filter
+    private ParticleFilter particleFilter;
+    private Marker FusedMarker;
+
     /**
      * Public Constructor for the class.
      * Left empty as not required
@@ -273,6 +278,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED));
         pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
         gnssLocation = sensorFusion.getGNSSLatitude(false);
+        filterSetup(gnssLocation);
     }
 
     private void handleLocationUpdates() {
@@ -328,7 +334,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             userLocationMarker.setPosition(newLocation);
         }
         // Consider not animating the camera every update to avoid jitter
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
+        float zoom = 17;
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newLocation, zoom));
     }
 
     private void setupGnssUpdates() {
@@ -346,7 +353,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 handleLocationUpdates();
 
                 // Schedule the next execution of this task
-                gnssUpdateHandler.postDelayed(this, 2000); // Adjust the delay as needed
+                gnssUpdateHandler.postDelayed(this, 500); // Adjust the delay as needed
             }
         };
     }
@@ -565,7 +572,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
             floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
-
+            applyFilter();
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
             // Display elevation and elevator icon when necessary
@@ -652,6 +659,55 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    //Particle Filter BS - Batu
+    public void filterSetup(float[] startloc){
+        if (startloc != null) {
+            double latitude = startloc[0];
+            double longitude = startloc[1];
+            // Create a new LatLng object for the GNSS location
+            LatLng filterstartloc = new LatLng(latitude, longitude);
+            particleFilter = new ParticleFilter(100,filterstartloc);
+        }
+    }
+
+    private void applyFilter(){
+        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
+        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+
+        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
+        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
+
+        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+    }
+
+    private void updateParticleFilterPositions(LatLng gnssPosition, LatLng pdrPosition, LatLng wifiPosition) {
+        if (particleFilter != null) {
+            // Assuming a small measurement noise for demonstration. Adjust based on actual data quality.
+            float measurementNoise = 5.0f; // Meters, adjust as needed
+
+            // Update particle filter with GNSS, PDR, and WiFi positions
+            // You can adjust the measurement noise for each type of update depending on their reliability
+            particleFilter.updateFilter(pdrPosition, gnssPosition, wifiPosition, measurementNoise);
+
+            // Optionally, get and use the fused position
+            LatLng fusedPosition = particleFilter.getFusedPosition();
+            updateMapWithFusedPosition(fusedPosition);
+        }
+    }
+    private void updateMapWithFusedPosition(LatLng position) {
+        if (mMap != null) {
+            if (FusedMarker == null) {
+                // Create the marker if it doesn't exist
+                FusedMarker = mMap.addMarker(new MarkerOptions()
+                        .position(position)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))); // Use a distinct color
+            } else {
+                // Update the marker's position
+                FusedMarker.setPosition(position);
+            }
+            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 18)); // Adjust zoom as needed
+        }
+    }
 
     /**
      * Displays a blinking red dot to signify an ongoing recording.
