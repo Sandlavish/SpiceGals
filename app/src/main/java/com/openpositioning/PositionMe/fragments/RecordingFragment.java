@@ -39,8 +39,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.GroundOverlay;
-import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -52,6 +50,7 @@ import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -67,6 +66,7 @@ import java.util.List;
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private static final float DEFAULT_ACCURACY = 0.5f ;
+    private Polyline pdrPolyline;
     private Polyline userTrajectory;
 
     private Handler gnssUpdateHandler;
@@ -74,23 +74,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private float[] gnssLocation;
 
-    LatLng southwestcornerNucleus;
-    LatLng northeastcornerNucleus;
-
     private PdrProcessing pdrProcessing;
 
-    LatLng southwestcornerLibrary;
-    LatLng northeastcornerLibrary;
-
-    private Polyline pdrPolyline;
-    private GroundOverlay groundflooroverlay;
-    private GroundOverlay firstflooroverlay;
-    private GroundOverlay secondflooroverlay;
-    private GroundOverlay thirdflooroverlay;
-    private GroundOverlay librarygroundflooroverlay;
-    private GroundOverlay libraryfirstflooroverlay;
-    private GroundOverlay librarysecondflooroverlay;
-    private GroundOverlay librarythirdflooroverlay;
+    public static LatLng southwestcornerLibrary = FloorOverlayManager.southwestcornerLibrary;
+    public static LatLng northeastcornerLibrary = FloorOverlayManager.northeastcornerLibrary;
 
     private final float GROUND_FLOOR_MAX_ELEVATION = 4.2f;
     private final float FIRST_FLOOR_MIN_ELEVATION = 4.2f;
@@ -105,10 +92,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Button cancelButton;
     //Recording icon to show user recording is in progress
     private ImageView recIcon;
-
-    private LatLngBounds buildingBounds; //building bounds for the Nucleus
-
-    private LatLngBounds buildingBoundsLibrary; //building bounds for the Library
 
     private LatLngBounds TestingBounds;
     //Compass icon to show user direction of heading
@@ -125,6 +108,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private TextView elevation;
     private TextView distanceTravelled;
 
+    private FloorOverlayManager floorOverlayManager;
+
+    private MapManager mapManager;
+
     //App settings
     private SharedPreferences settings;
     //Singleton class to collect all sensor data
@@ -137,11 +124,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     //variables to store data of the trajectory
     private float distance;
 
-    private boolean userIsOnFirstFloor = false; // Default to ground floor
-    private boolean userIsOnGroundFloor = false; //Ground floor is only visible when we are near the building
-    private boolean userIsOnSecondFloor = false; // Default to ground floor
-    private boolean userIsOnThirdFloor = false; // Default to ground floor
-
     private Marker pdrMarker;
     private float previousPosX;
     private float previousPosY;
@@ -150,14 +132,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Marker userLocationMarker;
 
-    private FusedLocationProviderClient fusedLocationProviderClient;
-    private LocationCallback locationCallback;
-
     private LatLng PDRPOS;
-
-    boolean isUserNearGroundFloor;
-
-    boolean isuserNearGroundFloorLibrary;
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
@@ -275,69 +250,22 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
 
-        int savedMapType = GlobalVariables.getMapType(); // Assuming you have a getter method in GlobalVariables
-        mMap.setMapType(GlobalVariables.getMapType());
+        mMap = googleMap;
         mMap.getUiSettings().setCompassEnabled(true);
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(true);
 
         setupMapComponents();
-        setupGroundOverlays();
 
-    }
-    private void setupGroundOverlays() {
-        defineOverlayBounds();
-        createAndAddOverlays();
-    }
+        mapManager = new MapManager(this);
 
-    private void createAndAddOverlays() {
-        // Nucleus Overlays
-        groundflooroverlay = addOverlay(R.drawable.nucleusg, buildingBounds);
-        firstflooroverlay = addOverlay(R.drawable.nucleus1, buildingBounds);
-        secondflooroverlay = addOverlay(R.drawable.nucleus2, buildingBounds);
-        thirdflooroverlay = addOverlay(R.drawable.nucleus3, buildingBounds);
 
-        // Library Overlays
-        librarygroundflooroverlay = addOverlay(R.drawable.libraryg, buildingBoundsLibrary);
-        libraryfirstflooroverlay = addOverlay(R.drawable.library1, buildingBoundsLibrary);
-        librarysecondflooroverlay = addOverlay(R.drawable.library2, buildingBoundsLibrary);
-        librarythirdflooroverlay = addOverlay(R.drawable.library3, buildingBoundsLibrary);
-
-    }
-
-    private void defineOverlayBounds() {
-        // Initialize LatLng for corners
-        southwestcornerNucleus = new LatLng(55.92278, -3.17465);
-        northeastcornerNucleus = new LatLng(55.92335, -3.173842);
-        southwestcornerLibrary = new LatLng(55.922738, -3.17517);
-        northeastcornerLibrary = new LatLng(55.923061, -3.174764);
-
-        // Initialize LatLngBounds
-        buildingBounds = new LatLngBounds(southwestcornerNucleus, northeastcornerNucleus);
-        buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary);
-    }
-
-    private GroundOverlay addOverlay(int resourceId, LatLngBounds bounds) {
-        return mMap.addGroundOverlay(new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(resourceId))
-                .positionFromBounds(bounds)
-                .transparency(0.5f)); // Adjust transparency as needed
-    }
-
-    private void updateFloorOverlay() {
-        if (groundflooroverlay != null && firstflooroverlay != null && secondflooroverlay!=null && thirdflooroverlay!=null) {
-            groundflooroverlay.setVisible(userIsOnGroundFloor);
-            firstflooroverlay.setVisible(userIsOnFirstFloor);
-            secondflooroverlay.setVisible(userIsOnSecondFloor);
-            thirdflooroverlay.setVisible(userIsOnThirdFloor);
-            librarygroundflooroverlay.setVisible(userIsOnGroundFloor);
-            libraryfirstflooroverlay.setVisible(userIsOnFirstFloor);
-            librarysecondflooroverlay.setVisible(userIsOnSecondFloor);
-            librarythirdflooroverlay.setVisible(userIsOnThirdFloor);
-        }
+        floorOverlayManager = new FloorOverlayManager(mMap, mapManager, sensorFusion);
+        floorOverlayManager.setupGroundOverlays();
+        // After setting up overlays, check and update them based on the current elevation
+        floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
 
@@ -359,12 +287,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Update the map with the new location
         updateMap(newLocation);
-
         //updateMap(newLocation); // Update the map with the new location
-        isUserNearGroundFloor = buildingBounds.contains(newLocation);
-        isuserNearGroundFloorLibrary = buildingBoundsLibrary.contains(newLocation);
+        floorOverlayManager.isUserNearGroundFloor = floorOverlayManager.buildingBounds.contains(newLocation);
+        floorOverlayManager.isuserNearGroundFloorLibrary = floorOverlayManager.buildingBounds.contains(newLocation);
     }
-
 
     private Bitmap getBitmapFromVector(Context context, int vectorResId) {
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
@@ -373,37 +299,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
         vectorDrawable.draw(canvas);
         return bitmap;
-    }
-
-    private enum Floor {
-        GROUND, FIRST, SECOND, THIRD
-    }
-
-    private void selectFloor(Floor floor) {
-        // Reset all flags
-        userIsOnGroundFloor = false;
-        userIsOnFirstFloor = false;
-        userIsOnSecondFloor = false;
-        userIsOnThirdFloor = false;
-
-        // Set the flag for the selected floor to true
-        switch (floor) {
-            case GROUND:
-                userIsOnGroundFloor = true;
-                break;
-            case FIRST:
-                userIsOnFirstFloor = true;
-                break;
-            case SECOND:
-                userIsOnSecondFloor = true;
-                break;
-            case THIRD:
-                userIsOnThirdFloor = true;
-                break;
-        }
-
-        // Update the floor overlay to reflect the current selection
-        updateFloorOverlay();
     }
 
     private void processLocationWithKalmanFilter(float[] gnssLocation) {
@@ -436,25 +331,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
-
-    /**
-     * {@inheritDoc}
-     * Text Views and Icons initialised to display the current PDR to the user. A Button onClick
-     * listener is enabled to detect when to go to next fragment and allow the user to correct PDR.
-     * A runnable thread is called to update the UI every 0.5 seconds.
-     */
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        pdrProcessing = new PdrProcessing(getContext());
-        //float currentElevation = sensorFusion.getElevation();
-
-
-        Button btnGroundFloor = view.findViewById(R.id.btnGroundFloor);
-        Button btnFirstFloor = view.findViewById(R.id.btnFirstFloor);
-        Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
-        Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
-
+    private void setupGnssUpdates() {
         // Initialize the Handler and Runnable for GNSS updates
         gnssUpdateHandler = new Handler(Looper.getMainLooper());
         gnssUpdateTask = new Runnable() {
@@ -472,80 +349,82 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 gnssUpdateHandler.postDelayed(this, 2000); // Adjust the delay as needed
             }
         };
+    }
 
-        // Start the GNSS update task
-        gnssUpdateHandler.post(gnssUpdateTask);
+    private void updateFloorButtonStates(boolean isUserNearAnyFloor, Button... buttons) {
+        for (Button button : buttons) {
+            button.setVisibility(isUserNearAnyFloor ? View.VISIBLE : View.GONE);
+            button.setEnabled(isUserNearAnyFloor);
+        }
+    }
 
-        //isUserNearGroundFloor = true;
-        //isuserNearGroundFloorLibrary = true;
-
-        // Set visibility and enabled state for each button based on user proximity
-        btnGroundFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
-        btnFirstFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
-        btnSecondFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
-        btnThirdFloor.setVisibility(isUserNearGroundFloor || isuserNearGroundFloorLibrary ? View.VISIBLE : View.GONE);
-
-        btnGroundFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
-        btnFirstFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
-        btnSecondFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
-        btnThirdFloor.setEnabled(isUserNearGroundFloor || isuserNearGroundFloorLibrary);
-
-        btnGroundFloor.setOnClickListener(v -> selectFloor(Floor.GROUND));
-        btnFirstFloor.setOnClickListener(v -> selectFloor(Floor.FIRST));
-        btnSecondFloor.setOnClickListener(v -> selectFloor(Floor.SECOND));
-        btnThirdFloor.setOnClickListener(v -> selectFloor(Floor.THIRD));
-
-
+    private void setupMapTypeSpinner(View view) {
         Spinner mapTypeSpinner = view.findViewById(R.id.mapTypeSpinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
                 R.array.map_types, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mapTypeSpinner.setAdapter(adapter);
 
-        int savedMapType = GlobalVariables.getMapType();
+        // Fetch the array of map types from resources
+        String[] mapTypes = getResources().getStringArray(R.array.map_types);
 
-        // Determine the spinner position that corresponds to the saved map type
-        int spinnerPosition = 0; // Default to 0 (assuming it's the 'Normal' map type)
-        switch (savedMapType) {
-            case GoogleMap.MAP_TYPE_SATELLITE:
-                spinnerPosition = 1;
-                break;
-            case GoogleMap.MAP_TYPE_TERRAIN:
-                spinnerPosition = 2;
-                break;
-            case GoogleMap.MAP_TYPE_HYBRID:
-                spinnerPosition = 3;
-                break;
-            // Default case for MAP_TYPE_NORMAL is already set by initializing spinnerPosition to 0
-        }
-        mapTypeSpinner.setSelection(spinnerPosition, false); // The second argument 'false' ensures no callback is triggered
+        // Set the spinner to the current global map type
+        mapTypeSpinner.setSelection(Arrays.asList(mapTypes).indexOf(String.valueOf(GlobalVariables.getMapType())), false);
 
         mapTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                // Update the global map type based on user selection
+                GlobalVariables.setMapType(getMapTypeFromIndex(position));
                 if (mMap != null) {
-                    switch (position) {
-                        case 0:
-                            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                            break;
-                        case 1:
-                            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-                            break;
-                        case 2:
-                            mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
-                            break;
-                        case 3:
-                            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-                            break;
-                    }
+                    mMap.setMapType(GlobalVariables.getMapType());
                 }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // Can be left empty
             }
         });
+    }
+
+
+    private int getMapTypeFromIndex(int index) {
+        switch (index) {
+            case 1: return GoogleMap.MAP_TYPE_NORMAL;
+            case 2: return GoogleMap.MAP_TYPE_SATELLITE;
+            case 3: return GoogleMap.MAP_TYPE_TERRAIN;
+            case 4: return GoogleMap.MAP_TYPE_HYBRID;
+            default: return GlobalVariables.getMapType();
+        }
+    }
+
+
+    /**
+     * {@inheritDoc}
+     * Text Views and Icons initialised to display the current PDR to the user. A Button onClick
+     * listener is enabled to detect when to go to next fragment and allow the user to correct PDR.
+     * A runnable thread is called to update the UI every 0.5 seconds.
+     */
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        pdrProcessing = new PdrProcessing(getContext());
+        //float currentElevation = sensorFusion.getElevation();
+
+        Button btnGroundFloor = view.findViewById(R.id.btnGroundFloor);
+        Button btnFirstFloor = view.findViewById(R.id.btnFirstFloor);
+        Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
+        Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
+
+        // Setup GNSS updates
+        setupGnssUpdates();
+
+        // Setup visibility and enabled state based on user proximity
+        updateFloorButtonStates(FloorOverlayManager.isUserNearGroundFloor || FloorOverlayManager.isuserNearGroundFloorLibrary,
+                btnGroundFloor, btnFirstFloor, btnSecondFloor, btnThirdFloor);
+
+        // Initialize the map type spinner
+        setupMapTypeSpinner(view);
 
 
         // Set autoStop to null for repeat recordings
@@ -684,7 +563,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Calculate distance travelled
             distance += Math.sqrt(Math.pow(pdrValues[0] - previousPosX, 2) + Math.pow(pdrValues[1] - previousPosY, 2));
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
-
+            floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
 
             previousPosX = pdrValues[0];
@@ -692,7 +571,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Display elevation and elevator icon when necessary
             elevationVal = sensorFusion.getElevation();
 
-            updateFloorOverlay();
+            floorOverlayManager.checkAndUpdateFloorOverlay();
 
             elevation.setText(getString(R.string.elevation, String.format("%.1f", elevationVal)));
             if(sensorFusion.getElevator()) elevatorIcon.setVisibility(View.VISIBLE);
@@ -715,27 +594,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             updatePDRMarker(pdrLatLng);
             updatePDRPath(pdrLatLng); // If you also want to draw the path
 
-            isUserNearGroundFloor = ((pdrLatLng.latitude >= southwestcornerNucleus.latitude && pdrLatLng.latitude <= northeastcornerNucleus.latitude)
-                    && (pdrLatLng.longitude >= southwestcornerNucleus.longitude && pdrLatLng.longitude <= northeastcornerNucleus.longitude));
-            isuserNearGroundFloorLibrary = ((pdrLatLng.latitude >= southwestcornerLibrary.latitude && pdrLatLng.latitude <= northeastcornerLibrary.latitude)
-                    && (pdrLatLng.longitude >= southwestcornerLibrary.longitude && pdrLatLng.longitude <= northeastcornerLibrary.longitude));
-            updateFloorBasedOnElevation(elevationVal);
-        }
-    }
-
-    private void updateFloorBasedOnElevation(float elevation) {
-        // Only proceed if the user is near a relevant area
-        if (!isUserNearGroundFloor && !isuserNearGroundFloorLibrary) return;
-
-        // Determine the floor based on the elevation value
-        if (elevation <= GROUND_FLOOR_MAX_ELEVATION) {
-            selectFloor(Floor.GROUND);
-        } else if (elevation >= FIRST_FLOOR_MIN_ELEVATION && elevation <= FIRST_FLOOR_MAX_ELEVATION) {
-            selectFloor(Floor.FIRST);
-        } else if (elevation >= SECOND_FLOOR_MIN_ELEVATION && elevation <= SECOND_FLOOR_MAX_ELEVATION) {
-            selectFloor(Floor.SECOND);
-        } else if (elevation >= THIRD_FLOOR_MIN_ELEVATION && elevation <= THIRD_FLOOR_MAX_ELEVATION) {
-            selectFloor(Floor.THIRD);
+            floorOverlayManager.isUserNearGroundFloor = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerNucleus.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerNucleus.latitude)
+                    && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerNucleus.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerNucleus.longitude));
+            floorOverlayManager.isuserNearGroundFloorLibrary = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerLibrary.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerLibrary.latitude)
+                    && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerLibrary.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerLibrary.longitude));
+            floorOverlayManager.checkAndUpdateFloorOverlay();
         }
     }
 
@@ -767,7 +630,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         // Calculate the new position
         double newLat = startLatLng.latitude + deltaLat;
         double newLon = startLatLng.longitude + deltaLon;
-        LatLng newloc = new LatLng(newLat, newLon);
 
 
         return new LatLng(newLat, newLon);

@@ -114,6 +114,7 @@ public class StartLocationFragment extends Fragment {
                         switch (position) {
                             case 0:
                                 type = GoogleMap.MAP_TYPE_NORMAL;
+
                                 break;
                             case 1:
                                 type = GoogleMap.MAP_TYPE_SATELLITE;
@@ -125,6 +126,7 @@ public class StartLocationFragment extends Fragment {
                                 type = GoogleMap.MAP_TYPE_HYBRID;
                                 break;
                         }
+                        GlobalVariables.setMapType(type); // Save the selected map type globally
                         mMap.setMapType(type); // Set the map type immediately for current map
                     }
                     @Override
