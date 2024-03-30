@@ -356,7 +356,7 @@ public class ServerCommunications implements Observable {
     /**
      * API request for information about submitted trajectories. If the response is successful,
      * the {@link ServerCommunications#infoResponse} field is updated and observes notified.
-     *
+     * @author Michalis Voudaskas
      */
     public void sendInfoRequest() {
         // Create a new OkHttpclient

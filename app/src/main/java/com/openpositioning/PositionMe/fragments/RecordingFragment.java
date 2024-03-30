@@ -161,14 +161,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     // Fields to store recent locations
     private List<LatLng> recentGNSSLocations = new ArrayList<>();
     private List<LatLng> recentWifiLocations = new ArrayList<>();
+    private List<LatLng> recentPDRLocations = new ArrayList<>();
     private List<Marker> gnssMarkers = new ArrayList<>();
     private List<Marker> wifiMarkers = new ArrayList<>();
+    private List<Marker> pdrMarkers = new ArrayList<>();
 
     private boolean areGnssMarkersVisible = true;
     private boolean areWifiMarkersVisible = true;
+    private boolean arePDRMarkersVisible = true;
 
     private static final int MAX_RECENT_LOCATIONS = 5;
-    private static final double OUTLIER_THRESHOLD_METERS = 10;
+    private static final double OUTLIER_THRESHOLD_METERS = 5;
 
     private KalmanLatLong kalmanFilter;
     //Particle Filter
@@ -315,7 +318,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private void setupMapComponents() {
         userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED));
-        pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color.GREEN));
+        pdrPolyline = mMap.addPolyline(new PolylineOptions().width(9).color(Color. GREEN));
         gnssLocation = sensorFusion.getGNSSLatitude(false);
         filterSetup(gnssLocation);
     }
@@ -614,7 +617,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     else elevatorIcon.setVisibility(View.GONE);
 
                     //Rotate compass image to heading angle
-                    compassIcon.setRotation((float) + Math.toDegrees(sensorFusion.passOrientation()));
+                    compassIcon.setRotation((float) - Math.toDegrees(sensorFusion.passOrientation()));
                 }
 
                 /**
@@ -671,7 +674,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             else elevatorIcon.setVisibility(View.GONE);
 
             //Rotate compass image to heading angle
-            compassIcon.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
+            compassIcon.setRotation((float) - Math.toDegrees(sensorFusion.passOrientation()));
 
             // Loop the task again to keep refreshing the data
             refreshDataHandler.postDelayed(refreshDataTask, 500);
@@ -684,7 +687,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         float[] pdrCoordinates = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
         if (pdrCoordinates != null && PDRPOS != null) {
             LatLng pdrLatLng = convertMetersToLatLng(pdrCoordinates, PDRPOS);
-            updatePDRMarker(pdrLatLng);
+            //updatePDRMarker(pdrLatLng);
+            updatePDRLocations(pdrLatLng);
             updatePDRPath(pdrLatLng); // If you also want to draw the path
 
             floorOverlayManager.isUserNearGroundFloor = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerNucleus.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerNucleus.latitude)
@@ -694,6 +698,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             floorOverlayManager.checkAndUpdateFloorOverlay();
         }
     }
+    /**
+    Method to send the json fingerprint to the server and receive the latlong resposne
+    Also checks if the wifi list is empty and notifies the user that there is no wifi coverage @author Michalis Voudaskas
+     */
 
     private void fetchLocation() {
         Executors.newSingleThreadExecutor().submit(() -> {
@@ -707,7 +715,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
 
                     // Simple no coverage detection based on invalid LatLng
-                    if (Double.isNaN(wifiLocation.latitude) || Double.isNaN(wifiLocation.longitude)) {
+                    if (sensorFusion.getWifiList() == null) {
                         Log.e("RecordingFragment", "No coverage: Invalid Wi-Fi location.");
                         Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
                         return; // Exit early
@@ -739,7 +747,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
-
+    // check if the most recent wifi is an outlier by comparing with the average of the last 5 wifi positions
     private boolean isOutlier(LatLng newLocation) {
         //consider a location an outlier if it's too far from the average of recent locations
         if (recentWifiLocations.isEmpty()) {
@@ -751,6 +759,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distanceToAverage > OUTLIER_THRESHOLD_METERS;
     }
 
+    //store the last 5 wifi positions
     private void updateWifiLocations(LatLng newLocation) {
         recentWifiLocations.add(newLocation);
         if (recentWifiLocations.size() > MAX_RECENT_LOCATIONS) {
@@ -758,6 +767,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    //store the last 5 pdr positions
+    private void updatePDRLocations(LatLng newLocation) {
+        recentPDRLocations.add(newLocation);
+        if (recentPDRLocations.size() > MAX_RECENT_LOCATIONS) {
+            recentPDRLocations.remove(0); // Keep the list size fixed
+        }
+    }
+
+    //store the last 5 gnss positions
     private void updateGnssLocations(LatLng newLocation) {
         recentGNSSLocations.add(newLocation);
         if (recentGNSSLocations.size() > MAX_RECENT_LOCATIONS) {
@@ -765,6 +783,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    //get the average positions from latlng
     private LatLng getAverageLocation(List<LatLng> locations) {
         double sumLat = 0;
         double sumLng = 0;
@@ -797,23 +816,24 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distance;
     }
 
-    private void updatePDRMarker(LatLng position) {
-        if (mMap != null) {
-            float bearing = sensorFusion.passOrientation(); // Replace with actual method to get bearing
-            if (pdrMarker == null) {
-                pdrMarker = mMap.addMarker(new MarkerOptions()
-                        .position(position)
-                        .title("PDR Position")
-                        .rotation(bearing)
-                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))
-                        .anchor(0.5f, 0.5f)); // Ensure the marker rotates around its center
-            } else {
-                pdrMarker.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
-                pdrMarker.setPosition(position);
-            }
-        }
-    }
+//    private void updatePDRMarker(LatLng position) {
+//        if (mMap != null) {
+//            float bearing = sensorFusion.passOrientation(); // Replace with actual method to get bearing
+//            if (pdrMarker == null) {
+//                pdrMarker = mMap.addMarker(new MarkerOptions()
+//                        .position(position)
+//                        .title("PDR Position")
+//                        .rotation(bearing)
+//                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))
+//                        .anchor(0.5f, 0.5f)); // Ensure the marker rotates around its center
+//            } else {
+//                pdrMarker.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
+//                pdrMarker.setPosition(position);
+//            }
+//        }
+//    }
 
+    //haversine formula to get the distance between 2 latlongs
     private LatLng convertMetersToLatLng(float[] pdrCoordinates, LatLng startLatLng) {
         // Constants
         final double metersInOneDegreeLatitude = 111111.0;
@@ -846,6 +866,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         }
     }
+
+    //method to display the last 5 positions of pdr gnss and wifi @author: Michalis Voudaskas
     private void updateLocationMarkers() {
         // Clear previous markers
         for (Marker marker : gnssMarkers) {
@@ -858,12 +880,26 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         wifiMarkers.clear();
 
+        for (Marker marker : pdrMarkers) {
+            marker.remove();
+        }
+        pdrMarkers.clear();
+
+        // Add new PDR markers
+        for (LatLng location : recentPDRLocations) {
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_green_dot_24)))
+                    .visible(arePDRMarkersVisible));
+            pdrMarkers.add(marker);
+        }
+
         // Add new GNSS markers
         for (LatLng location : recentGNSSLocations) {
             Marker marker = mMap.addMarker(new MarkerOptions()
                     .position(location)
                     .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_pink_dot_24)))
-                    .visible(areGnssMarkersVisible));// GNSS in pink
+                    .visible(areGnssMarkersVisible));
             gnssMarkers.add(marker);
         }
 
@@ -916,12 +952,19 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
     private void updateMapWithFusedPosition(LatLng position) {
+        float mapBearing = mMap.getCameraPosition().bearing; // Map's bearing in degrees
+        float azimuthInRadians = sensorFusion.passOrientation();
+        float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
+        float adjustedAzimuth = azimuthInDegrees - mapBearing;
+        adjustedAzimuth = (adjustedAzimuth + 360) % 360;
         if (mMap != null) {
             if (FusedMarker == null) {
                 // Create the marker if it doesn't exist
                 FusedMarker = mMap.addMarker(new MarkerOptions()
                         .position(position)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))); // Use a distinct color
+                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))
+                        .rotation(adjustedAzimuth)
+                        .anchor(0.5f, 0.5f));
             } else {
                 // Update the marker's position
                 FusedMarker.setPosition(position);
@@ -973,17 +1016,20 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         startIndoorOutdoorDetection();
     }
 
+    //display the user the option to choose which markers they want to see @author: Michalis Voudaskas
     private void showToggleMarkersDialog() {
         // Current visibility states
-        boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible};
+        boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible, arePDRMarkersVisible};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Toggle Marker Visibility")
-                .setMultiChoiceItems(new CharSequence[]{"GNSS Markers", "Wi-Fi Markers"}, checkedItems, (dialog, which, isChecked) -> {
+                .setMultiChoiceItems(new CharSequence[]{"GNSS Markers", "Wi-Fi Markers", "PDR Markers"}, checkedItems, (dialog, which, isChecked) -> {
                     if (which == 0) { // GNSS Markers
                         areGnssMarkersVisible = isChecked;
                     } else if (which == 1) { // Wi-Fi Markers
                         areWifiMarkersVisible = isChecked;
+                    } else if (which ==2) {//pdr MARKERS
+                        arePDRMarkersVisible = isChecked;
                     }
                 })
                 .setPositiveButton("OK", (dialog, id) -> {
@@ -997,12 +1043,16 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         dialog.show();
     }
 
+    //adjust the marker visibility based on the user's preference
     private void toggleMarkerVisibility() {
         for (Marker marker : gnssMarkers) {
             marker.setVisible(areGnssMarkersVisible);
         }
         for (Marker marker : wifiMarkers) {
             marker.setVisible(areWifiMarkersVisible);
+        }
+        for (Marker marker : pdrMarkers) {
+            marker.setVisible(arePDRMarkersVisible);
         }
     }
 }

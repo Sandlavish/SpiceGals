@@ -10,10 +10,9 @@ import java.util.List;
 import java.util.Map;
 /**
  * {@inheritDoc}
- *
  * Class to create the wifi fingerprints
- * takes the wifilist that already exists and creates a dictionary which only includes the BSSID and RSSI
- * this dictionary is then wrapped in a JSON
+ * takes the wifi list from sensor fusion and creates a dictionary which only includes the BSSID and RSSI
+ * this dictionary is then wrapped in a JSON @author Michalis Voudaskas
  */
 public class WifiFPManager {
     private SensorFusion sensorFusion;
