@@ -968,6 +968,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             } else {
                 // Update the marker's position
                 FusedMarker.setPosition(position);
+                FusedMarker.setRotation(adjustedAzimuth);
+
             }
             //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 18)); // Adjust zoom as needed
         }
