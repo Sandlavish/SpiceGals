@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,9 +23,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -39,6 +42,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -48,11 +53,16 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
+import com.openpositioning.PositionMe.ServerCommunications;
+import com.openpositioning.PositionMe.sensors.LocationResponse;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
+import com.openpositioning.PositionMe.sensors.WifiFPManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 /**
  * A simple {@link Fragment} subclass. The recording fragment is displayed while the app is actively
@@ -72,6 +82,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Handler gnssUpdateHandler;
     private Runnable gnssUpdateTask;
+    private Handler lightLevelHandler;
+    private Runnable lightLevelRunnable;
+
+    private static final float INDOOR_OUTDOOR_THRESHOLD = 1000.0f;
+    private boolean isOutdoor;
 
     private float[] gnssLocation;
 
@@ -133,14 +148,35 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Marker userLocationMarker;
 
+    private Boolean wasPreviouslyOutdoor = null; // null indicates no previous status
+
     private LatLng PDRPOS;
 
+    boolean isUserNearGroundFloor;
+
+    boolean isuserNearGroundFloorLibrary;
+
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
+
+    // Fields to store recent locations
+    private List<LatLng> recentGNSSLocations = new ArrayList<>();
+    private List<LatLng> recentWifiLocations = new ArrayList<>();
+    private List<Marker> gnssMarkers = new ArrayList<>();
+    private List<Marker> wifiMarkers = new ArrayList<>();
+
+    private boolean areGnssMarkersVisible = true;
+    private boolean areWifiMarkersVisible = true;
+
+    private static final int MAX_RECENT_LOCATIONS = 5;
+    private static final double OUTLIER_THRESHOLD_METERS = 10;
 
     private KalmanLatLong kalmanFilter;
     //Particle Filter
     private ParticleFilter particleFilter;
     private Marker FusedMarker;
+
+    private WifiFPManager wifiFPManager;
+    private ServerCommunications serverCommunications;
 
     /**
      * Public Constructor for the class.
@@ -225,6 +261,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         this.settings = PreferenceManager.getDefaultSharedPreferences(context);
         this.refreshDataHandler = new Handler();
         this.kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND); // Ensure you have defined Q_METRES_PER_SECOND appropriately
+        this.wifiFPManager = WifiFPManager.getInstance();
+        serverCommunications = new ServerCommunications(context);
     }
 
     /**
@@ -261,6 +299,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(true);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 16f ));
 
         setupMapComponents();
 
@@ -290,9 +329,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Create a new LatLng object for the GNSS location
         LatLng newLocation = new LatLng(latitude, longitude);
-
+        updateGnssLocations(newLocation);
+        updateLocationMarkers();
         // Update the map with the new location
-        updateMap(newLocation);
+        // updateMap(newLocation);
         //updateMap(newLocation); // Update the map with the new location
         floorOverlayManager.isUserNearGroundFloor = floorOverlayManager.buildingBounds.contains(newLocation);
         floorOverlayManager.isuserNearGroundFloorLibrary = floorOverlayManager.buildingBounds.contains(newLocation);
@@ -321,22 +361,64 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Use the filtered coordinates to update the map or UI
         LatLng filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-        updateMap(filteredLocation);
+        //updateMap(filteredLocation);
     }
 
-    private void updateMap(LatLng newLocation) {
-        if (userLocationMarker == null) {
-            userLocationMarker = mMap.addMarker(new MarkerOptions()
-                    .position(newLocation)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
-        } else {
-            // Update the marker's position to the new, filtered location
-            userLocationMarker.setPosition(newLocation);
-        }
-        // Consider not animating the camera every update to avoid jitter
-        float zoom = 17;
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newLocation, zoom));
+    private void startIndoorOutdoorDetection() {
+        lightLevelHandler = new Handler();
+        lightLevelRunnable = new Runnable() {
+            @Override
+            public void run() {
+                updateIndoorOutdoorStatus();
+                lightLevelHandler .postDelayed(this, 5000); // Check every 5 seconds
+            }
+        };
+        lightLevelHandler.post(lightLevelRunnable );
     }
+
+    private void updateIndoorOutdoorStatus() {
+        // Fetch the latest GNSS location from sensor fusion
+        float[] gnssLocation = sensorFusion.getGNSSLatitude(false);
+        LatLng currentLocation = new LatLng(gnssLocation[0], gnssLocation[1]);
+
+        // Check if user is within any building bounds
+        boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(currentLocation) || floorOverlayManager.buildingBoundsLibrary.contains(currentLocation);
+
+        // Fetch current light level from sensor fusion
+        float currentLightLevel = sensorFusion.getSensorValueMap().get(SensorTypes.LIGHT)[0];
+        Log.d("RecordingFragment", "Current light level: " + currentLightLevel + " lux");
+
+        // Determine indoor/outdoor status based on light level and building bounds
+        boolean currentlyOutdoor = currentLightLevel > INDOOR_OUTDOOR_THRESHOLD || !isUserInsideAnyBuilding;
+
+        // Check for a change in the indoor/outdoor status
+        if (wasPreviouslyOutdoor == null || wasPreviouslyOutdoor != currentlyOutdoor) {
+            // If the status has changed, show a toast message
+            String environment = currentlyOutdoor ? "Outdoor" : "Indoor";
+            Toast.makeText(getContext(), environment, Toast.LENGTH_SHORT).show();
+
+            // Update the previous state
+            wasPreviouslyOutdoor = currentlyOutdoor;
+        }
+
+        // Update the global isOutdoor variable based on the current status
+        isOutdoor = currentlyOutdoor;
+        Log.d("RecordingFragment", "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"));
+    }
+
+//    private void updateMap(LatLng newLocation) {
+//        if (userLocationMarker == null) {
+//            userLocationMarker = mMap.addMarker(new MarkerOptions()
+//                    .position(newLocation)
+//                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+//        } else {
+//            // Update the marker's position to the new, filtered location
+//            userLocationMarker.setPosition(newLocation);
+//        }
+//        // Consider not animating the camera every update to avoid jitter
+//        float zoom = 17;
+//        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newLocation, zoom));
+//    }
 
     private void setupGnssUpdates() {
         // Initialize the Handler and Runnable for GNSS updates
@@ -532,7 +614,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     else elevatorIcon.setVisibility(View.GONE);
 
                     //Rotate compass image to heading angle
-                    compassIcon.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
+                    compassIcon.setRotation((float) + Math.toDegrees(sensorFusion.passOrientation()));
                 }
 
                 /**
@@ -554,6 +636,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // No time limit - use a repeating task to refresh UI.
             this.refreshDataHandler.post(refreshDataTask);
         }
+
+        Button btnToggleMarkers = view.findViewById(R.id.btnToggleMarkers);
+        btnToggleMarkers.setOnClickListener(v -> showToggleMarkersDialog());
     }
 
     /**
@@ -572,6 +657,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
             floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
+            fetchLocation();
             applyFilter();
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
@@ -607,6 +693,108 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerLibrary.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerLibrary.longitude));
             floorOverlayManager.checkAndUpdateFloorOverlay();
         }
+    }
+
+    private void fetchLocation() {
+        Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                String wifiFingerprintJson = wifiFPManager.createWifiFingerprintJson();
+                LocationResponse locationResponse = serverCommunications.sendWifiFingerprintToServer(wifiFingerprintJson);
+
+                getActivity().runOnUiThread(() -> {
+                    Log.d("RecordingFragment", "Received Wi-Fi location.");
+
+                    LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
+
+                    // Simple no coverage detection based on invalid LatLng
+                    if (Double.isNaN(wifiLocation.latitude) || Double.isNaN(wifiLocation.longitude)) {
+                        Log.e("RecordingFragment", "No coverage: Invalid Wi-Fi location.");
+                        Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
+                        return; // Exit early
+                    }
+
+//                    // Outlier detection: only add marker if within a reasonable distance from previous locations
+//                    if (isOutlier(wifiLocation)) {
+//                        Log.e("RecordingFragment", "Detected outlier Wi-Fi location.");
+//                        //Toast.makeText(getContext(), "Outlier detected, location not updated", Toast.LENGTH_LONG).show();
+//                    } else {
+//                        // Not an outlier, update the map
+//                        if (wifiMarker == null) {
+//                            wifiMarker = mMap.addMarker(new MarkerOptions()
+//                                    .position(wifiLocation)
+//                                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_add_location_24)))
+//                                    .visible(true)
+//                            );
+//                        } else {
+//                            wifiMarker.setPosition(wifiLocation);
+//                        }
+//                    }
+
+                    // Update the list of recent locations
+                    updateWifiLocations(wifiLocation);
+                    updateLocationMarkers();
+                });
+            } catch (Exception e) {
+                Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    private boolean isOutlier(LatLng newLocation) {
+        //consider a location an outlier if it's too far from the average of recent locations
+        if (recentWifiLocations.isEmpty()) {
+            return false; // No history to compare against
+        }
+
+        LatLng averageLocation = getAverageLocation(recentWifiLocations);
+        double distanceToAverage = calculateDistanceBetween(averageLocation, newLocation);
+        return distanceToAverage > OUTLIER_THRESHOLD_METERS;
+    }
+
+    private void updateWifiLocations(LatLng newLocation) {
+        recentWifiLocations.add(newLocation);
+        if (recentWifiLocations.size() > MAX_RECENT_LOCATIONS) {
+            recentWifiLocations.remove(0); // Keep the list size fixed
+        }
+    }
+
+    private void updateGnssLocations(LatLng newLocation) {
+        recentGNSSLocations.add(newLocation);
+        if (recentGNSSLocations.size() > MAX_RECENT_LOCATIONS) {
+            recentGNSSLocations.remove(0); // Keep the list size fixed
+        }
+    }
+
+    private LatLng getAverageLocation(List<LatLng> locations) {
+        double sumLat = 0;
+        double sumLng = 0;
+        for (LatLng loc : locations) {
+            sumLat += loc.latitude;
+            sumLng += loc.longitude;
+        }
+        return new LatLng(sumLat / locations.size(), sumLng / locations.size());
+    }
+
+    // Distance between 2 latlongs
+    private double calculateDistanceBetween(LatLng pos1, LatLng pos2) {
+        final int R = 6371; // Radius of the earth in kilometers
+
+        double lat1 = pos1.latitude;
+        double lon1 = pos1.longitude;
+        double lat2 = pos2.latitude;
+        double lon2 = pos2.longitude;
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = R * c * 1000; // convert to meters
+
+        return distance;
     }
 
     private void updatePDRMarker(LatLng position) {
@@ -658,15 +846,48 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         }
     }
+    private void updateLocationMarkers() {
+        // Clear previous markers
+        for (Marker marker : gnssMarkers) {
+            marker.remove();
+        }
+        gnssMarkers.clear();
+
+        for (Marker marker : wifiMarkers) {
+            marker.remove();
+        }
+        wifiMarkers.clear();
+
+        // Add new GNSS markers
+        for (LatLng location : recentGNSSLocations) {
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_pink_dot_24)))
+                    .visible(areGnssMarkersVisible));// GNSS in pink
+            gnssMarkers.add(marker);
+        }
+
+        // Add new Wi-Fi markers
+        for (LatLng location : recentWifiLocations) {
+            boolean isOutlierLocation = isOutlier(location);
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(),
+                            isOutlierLocation ? R.drawable.ic_baseline_yellow_dot_24 : R.drawable.ic_baseline_purple_dot_24
+                    )))
+                    .visible(areWifiMarkersVisible)); // Yellow for outlier, otherwise purple
+            wifiMarkers.add(marker);
+        }
+    }
 
     //Particle Filter BS - Batu
-    public void filterSetup(float[] startloc){
+    public void filterSetup(float[] startloc) {
         if (startloc != null) {
             double latitude = startloc[0];
             double longitude = startloc[1];
             // Create a new LatLng object for the GNSS location
             LatLng filterstartloc = new LatLng(latitude, longitude);
-            particleFilter = new ParticleFilter(100,filterstartloc);
+            particleFilter = new ParticleFilter(100, filterstartloc);
         }
     }
 
@@ -734,6 +955,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     public void onPause() {
         super.onPause();
         gnssUpdateHandler.removeCallbacks(gnssUpdateTask);
+        if (lightLevelHandler != null && lightLevelRunnable != null) {
+            lightLevelHandler.removeCallbacks(lightLevelRunnable);
+        }
     }
 
     /**
@@ -745,6 +969,40 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         super.onResume();
         if (gnssUpdateTask != null) {
             gnssUpdateHandler.post(gnssUpdateTask);
+        }
+        startIndoorOutdoorDetection();
+    }
+
+    private void showToggleMarkersDialog() {
+        // Current visibility states
+        boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Toggle Marker Visibility")
+                .setMultiChoiceItems(new CharSequence[]{"GNSS Markers", "Wi-Fi Markers"}, checkedItems, (dialog, which, isChecked) -> {
+                    if (which == 0) { // GNSS Markers
+                        areGnssMarkersVisible = isChecked;
+                    } else if (which == 1) { // Wi-Fi Markers
+                        areWifiMarkersVisible = isChecked;
+                    }
+                })
+                .setPositiveButton("OK", (dialog, id) -> {
+                    toggleMarkerVisibility();
+                })
+                .setNegativeButton("Cancel", (dialog, id) -> {
+                    // User cancelled the dialog
+                });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void toggleMarkerVisibility() {
+        for (Marker marker : gnssMarkers) {
+            marker.setVisible(areGnssMarkersVisible);
+        }
+        for (Marker marker : wifiMarkers) {
+            marker.setVisible(areWifiMarkersVisible);
         }
     }
 }

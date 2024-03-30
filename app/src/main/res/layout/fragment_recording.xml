@@ -156,12 +156,13 @@
                     android:id="@+id/elevatorImage"
                     android:layout_width="31dp"
                     android:layout_height="34dp"
+                    android:layout_marginStart="16dp"
                     android:elevation="2dp"
                     android:src="@drawable/ic_baseline_elevator_24"
                     app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.277"
-                    tools:layout_editor_absoluteX="16dp" />
+                    app:layout_constraintVertical_bias="0.277" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.cardview.widget.CardView>
 
@@ -180,14 +181,15 @@
             android:id="@+id/mapTypeSpinner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/spinnerbutton"
-            android:padding="8dp"
             android:layout_marginStart="16dp"
+            android:background="@drawable/spinnerbutton"
             android:entries="@array/map_types"
+            android:padding="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.106"/>
+            app:layout_constraintVertical_bias="0.128" />
+
         <Button
             android:id="@+id/btnGroundFloor"
             android:layout_width="130dp"
@@ -240,6 +242,104 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.568" />
+
+        <Button
+            android:id="@+id/btnToggleMarkers"
+            android:layout_width="121dp"
+            android:layout_height="42dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="16dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="16dp"
+            android:text="Markers"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/currentPositionCard" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="10dp"
+            android:background="@android:color/white"
+            android:orientation="vertical"
+            android:padding="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="10dp"
+            android:background="@android:color/white"
+            android:orientation="vertical"
+            android:padding="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- GNSS Location Legend Item -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/ic_baseline_pink_dot_24" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" GNSS Location"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Wi-Fi Location Legend Item -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/ic_baseline_purple_dot_24" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" Wi-Fi Location"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Outlier Location Legend Item -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/ic_baseline_yellow_dot_24" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" Outlier Location"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

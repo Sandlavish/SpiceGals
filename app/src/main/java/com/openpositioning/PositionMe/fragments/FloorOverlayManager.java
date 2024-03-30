@@ -42,9 +42,9 @@ public class FloorOverlayManager {
     public GroundOverlay librarysecondflooroverlay;
     public GroundOverlay librarythirdflooroverlay;
 
-    public LatLngBounds buildingBounds; //building bounds for the Nucleus
+    public static LatLngBounds buildingBounds; //building bounds for the Nucleus
 
-    public LatLngBounds buildingBoundsLibrary; //building bounds for the Library
+    public static LatLngBounds buildingBoundsLibrary; //building bounds for the Library
     private MapManager mapManager;
     private SensorFusion sensorFusion;
 
