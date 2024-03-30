@@ -164,6 +164,7 @@ public class FloorOverlayManager {
         buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary);
     }
 
+
     public GroundOverlay addOverlay(int resourceId, LatLngBounds bounds) {
         return mMap.addGroundOverlay(new GroundOverlayOptions()
                 .image(BitmapDescriptorFactory.fromResource(resourceId))

@@ -31,9 +31,6 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.preference.PreferenceManager;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -66,6 +63,9 @@ import java.util.List;
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private static final float DEFAULT_ACCURACY = 0.5f ;
+
+    private long lastUpdateTime = 0; // Timestamp of the last EKF update, in milliseconds
+
     private Polyline pdrPolyline;
     private Polyline userTrajectory;
 
@@ -75,17 +75,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private float[] gnssLocation;
 
     private PdrProcessing pdrProcessing;
+    private ExtendedKalmanFilter ekf;
 
-    public static LatLng southwestcornerLibrary = FloorOverlayManager.southwestcornerLibrary;
-    public static LatLng northeastcornerLibrary = FloorOverlayManager.northeastcornerLibrary;
-
-    private final float GROUND_FLOOR_MAX_ELEVATION = 4.2f;
-    private final float FIRST_FLOOR_MIN_ELEVATION = 4.2f;
-    private final float FIRST_FLOOR_MAX_ELEVATION = 8.6f;
-    private final float SECOND_FLOOR_MIN_ELEVATION = 8.6f;
-    private final float SECOND_FLOOR_MAX_ELEVATION = 12.8f;
-    private final float THIRD_FLOOR_MIN_ELEVATION = 12.8f;
-    private final float THIRD_FLOOR_MAX_ELEVATION = 17f;
 
     //Button to end PDR recording
     private Button stopButton;
@@ -132,85 +123,22 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Marker userLocationMarker;
 
+    private Marker ekfmarker;
+
     private LatLng PDRPOS;
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
-    private KalmanLatLong kalmanFilter;
+
+    private KalmanFilter.KalmanLatLong kalmanFilter;
+
+
     /**
      * Public Constructor for the class.
      * Left empty as not required
      */
     public RecordingFragment() {
         // Required empty public constructor
-    }
-
-    /**
-     * {@inheritDoc}
-     * Gets an instance of the {@link SensorFusion} class, and initialises the context and settings.
-     * Creates a handler for periodically updating the displayed data.
-     *
-     */
-
-    public class KalmanLatLong {
-        private final float MinAccuracy = 1;
-
-        private float Q_metres_per_second;
-        private long TimeStamp_milliseconds;
-        private double lat;
-        private double lng;
-        private float variance; // P matrix.  Negative means object uninitialised.
-
-        public KalmanLatLong(float Q_metres_per_second) {
-            this.Q_metres_per_second = Q_metres_per_second;
-            variance = -1;
-        }
-
-        public double get_lat() {
-            return lat;
-        }
-
-        public double get_lng() {
-            return lng;
-        }
-
-        public float get_accuracy() {
-            return (float) Math.sqrt(variance);
-        }
-
-        public void SetState(double lat, double lng, float accuracy, long TimeStamp_milliseconds) {
-            this.lat = lat;
-            this.lng = lng;
-            variance = accuracy * accuracy;
-            this.TimeStamp_milliseconds = TimeStamp_milliseconds;
-        }
-
-        public void Process(double lat_measurement, double lng_measurement, float accuracy, long TimeStamp_milliseconds, float Q_metres_per_second) {
-            if (accuracy < MinAccuracy) accuracy = MinAccuracy;
-            if (variance < 0) {
-                // if variance < 0, object is unitialised, so initialise with current values
-                SetState(lat_measurement, lng_measurement, accuracy, TimeStamp_milliseconds);
-            } else {
-                // else apply Kalman filter methodology
-
-                long TimeInc_milliseconds = TimeStamp_milliseconds - this.TimeStamp_milliseconds;
-                if (TimeInc_milliseconds > 0) {
-                    // time has moved on, so the uncertainty in the current position increases
-                    variance += TimeInc_milliseconds * Q_metres_per_second * Q_metres_per_second / 1000;
-                    this.TimeStamp_milliseconds = TimeStamp_milliseconds;
-                    // TO DO: USE VELOCITY INFORMATION HERE TO GET A BETTER ESTIMATE OF CURRENT POSITION
-                }
-
-                // Kalman gain matrix K = Covariance * Inverse(Covariance + MeasurementVariance)
-                // because K is dimensionless, it doesn't matter that variance has different units to lat and lng
-                float K = variance / (variance + accuracy * accuracy);
-                // apply K
-                lat += K * (lat_measurement - lat);
-                lng += K * (lng_measurement - lng);
-                // new Covariance matrix is (IdentityMatrix - K) * Covariance
-                variance = (1 - K) * variance;
-            }
-        }
     }
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -219,7 +147,25 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Context context = getActivity();
         this.settings = PreferenceManager.getDefaultSharedPreferences(context);
         this.refreshDataHandler = new Handler();
-        this.kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND); // Ensure you have defined Q_METRES_PER_SECOND appropriately
+        this.kalmanFilter = new KalmanFilter.KalmanLatLong(Q_METRES_PER_SECOND);
+
+
+        // Initialize the Extended Kalman Filter
+        int stateSize = 4; // For [lat, lon, v_n, v_e]
+        int measurementSize = 2; // For [lat, lon] measurements from GNSS
+        ekf = new ExtendedKalmanFilter(stateSize, measurementSize);
+
+        // Initial state: [lat, lon, v_n, v_e]
+        double[] initialState = {0.0, 0.0, 0.0, 0.0}; // Initialize with your first GNSS reading or a known starting point
+
+        // Initial covariance matrix (P), small values for the initial state's certainty
+        double[][] initialCovariance = new double[stateSize][stateSize];
+        for (int i = 0; i < stateSize; i++) {
+            initialCovariance[i][i] = 1.0; // Adjust these values based on the initial uncertainty of each state variable
+        }
+
+        // Initialize the EKF
+        ekf.initialize(initialState, initialCovariance);
     }
 
     /**
@@ -286,7 +232,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         LatLng newLocation = new LatLng(latitude, longitude);
 
         // Update the map with the new location
-        updateMap(newLocation);
+        updateMap(newLocation, newLocation);
         //updateMap(newLocation); // Update the map with the new location
         floorOverlayManager.isUserNearGroundFloor = floorOverlayManager.buildingBounds.contains(newLocation);
         floorOverlayManager.isuserNearGroundFloorLibrary = floorOverlayManager.buildingBounds.contains(newLocation);
@@ -304,28 +250,74 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private void processLocationWithKalmanFilter(float[] gnssLocation) {
         double latitude = gnssLocation[0];
         double longitude = gnssLocation[1];
+        long timeStamp = System.currentTimeMillis(); // Current time in milliseconds
 
+        // Check if Kalman filter is initialized
         if (kalmanFilter.get_accuracy() < 0) {
-            // If Kalman filter is uninitialized, initialize with the current GNSS data
-            kalmanFilter.SetState(latitude, longitude, DEFAULT_ACCURACY, System.currentTimeMillis());
+            // Initialize Kalman filter with current GNSS data
+            kalmanFilter.SetState(latitude, longitude, DEFAULT_ACCURACY, timeStamp);
         } else {
-            // Process the new GNSS data through the Kalman filter
-            kalmanFilter.Process(latitude, longitude, DEFAULT_ACCURACY, System.currentTimeMillis(), Q_METRES_PER_SECOND);
+            // Process new GNSS data through the Kalman filter
+            kalmanFilter.Process(latitude, longitude, DEFAULT_ACCURACY, timeStamp);
         }
 
-        // Use the filtered coordinates to update the map or UI
+        // Prepare the measurement array [lat, lon]
+        double[] z = {latitude, longitude};
+
+        // Measurement matrix (H), identity if directly measuring [lat, lon]
+        double[][] H = {{1, 0, 0, 0}, {0, 1, 0, 0}};
+
+        // Measurement noise covariance matrix (R), adjust based on GNSS accuracy
+        double[][] R = {{5.0, 0}, {0, 5.0}}; // Example values, adjust based on your GNSS receiver's specs
+
+        // Get the filtered state estimate
+        double[] stateEstimate = ekf.getStateEstimate();
+
+        // Extract the latitude and longitude from the state estimate
+        double filteredLat = stateEstimate[0];
+        double filteredLon = stateEstimate[1];
+
+        // Use the filtered coordinates to update the map
         LatLng filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-        updateMap(filteredLocation);
+        LatLng filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
+        updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
+
+        // Update the EKF with the new measurement
+        ekf.update(z, H, R);
+
+        lastUpdateTime = System.currentTimeMillis();
+    }
+    private void predictUserLocation() {
+        // Calculate the time step (dt) in seconds
+        long currentTime = System.currentTimeMillis();
+        double dt = (currentTime - lastUpdateTime) / 1000.0; // Convert milliseconds to seconds
+        lastUpdateTime = currentTime; // Update the last update time
+
+        // State transition matrix (F), adapted for the time step
+        double[][] F = {{1, 0, dt, 0}, {0, 1, 0, dt}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+
+        // Process noise covariance matrix (Q), adjust based on expected process noise
+        double[][] Q = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}; // Example values, adjust as needed
+
+        // Predict the next state
+        ekf.predict(F, Q);
+
+        // Update UI with predicted location
+        //updateUIWithFilteredLocation();
     }
 
-    private void updateMap(LatLng newLocation) {
-        if (userLocationMarker == null) {
-            userLocationMarker = mMap.addMarker(new MarkerOptions()
-                    .position(newLocation)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+    private void updateMap(LatLng newLocation, LatLng filteredLocation_ekf) {
+        if (ekfmarker == null) {
+//            userLocationMarker = mMap.addMarker(new MarkerOptions()
+//                    .position(newLocation)
+//                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+            ekfmarker = mMap.addMarker(new MarkerOptions()
+                    .position(filteredLocation_ekf)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)));
         } else {
             // Update the marker's position to the new, filtered location
-            userLocationMarker.setPosition(newLocation);
+            //userLocationMarker.setPosition(newLocation);
+            ekfmarker.setPosition(filteredLocation_ekf);
         }
         // Consider not animating the camera every update to avoid jitter
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
@@ -397,7 +389,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             default: return GlobalVariables.getMapType();
         }
     }
-
 
     /**
      * {@inheritDoc}
