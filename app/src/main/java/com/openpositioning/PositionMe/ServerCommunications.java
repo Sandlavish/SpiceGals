@@ -4,13 +4,18 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
 import com.openpositioning.PositionMe.fragments.FilesFragment;
+import com.openpositioning.PositionMe.sensors.LocationResponse;
 import com.openpositioning.PositionMe.sensors.Observable;
 import com.openpositioning.PositionMe.sensors.Observer;
 import com.google.protobuf.util.JsonFormat;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,6 +34,7 @@ import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -350,7 +356,7 @@ public class ServerCommunications implements Observable {
     /**
      * API request for information about submitted trajectories. If the response is successful,
      * the {@link ServerCommunications#infoResponse} field is updated and observes notified.
-     *
+     * @author Michalis Voudaskas
      */
     public void sendInfoRequest() {
         // Create a new OkHttpclient
@@ -434,6 +440,61 @@ public class ServerCommunications implements Observable {
             else if (index == 1 && o instanceof MainActivity) {
                 o.update(new Boolean[] {success});
             }
+        }
+    }
+    public LocationResponse sendWifiFingerprintToServer(String jsonWifiFingerprint) throws IOException {
+        Log.d("ServerCommunications", "JSON being sent: " + jsonWifiFingerprint);
+        OkHttpClient client = new OkHttpClient();
+        // Define the URL of the API
+        String apiUrl = "https://openpositioning.org/api/position/fine";
+
+        // Create a MediaType to specify the type of the request body
+        MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
+        // Create the request body with the JSON string
+        RequestBody body = RequestBody.create(jsonWifiFingerprint, JSON);
+
+        // Build the HTTP request
+        Request request = new Request.Builder()
+                .url(apiUrl)
+                .post(body)
+                .addHeader("Accept", "application/json")
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        // Execute the request synchronously
+        try (Response response = client.newCall(request).execute()) {
+            // Parse the response based on the status code
+            if (response.isSuccessful()) {
+                // Parse the successful response to extract latitude and longitude
+                String responseData = response.body().string();
+                // Log the response data
+                Log.d("ServerCommunications", "Response received: " + responseData);
+
+                JSONObject jsonObj = new JSONObject(responseData);
+                double latitude = jsonObj.optDouble("lat", Double.NaN); // Default to NaN if not present
+                double longitude = jsonObj.optDouble("lon", Double.NaN);
+                String floor = jsonObj.optString("floor", null); // Default to null if not present
+                return new LocationResponse(latitude, longitude, floor);
+            } else if (response.code() == 422) {
+                // Handle the validation error
+                String responseBody = response.body().string();
+                Log.e("Validation Error", responseBody);
+                // Additional error handling goes here
+                throw new IOException("Validation error with body: " + responseBody);
+            } else {
+                // Handle other types of errors
+                Log.e("Response Code", response.code() + " " + response.body().string());
+                throw new IOException("Unexpected response code: " + response.code());
+            }
+        } catch (JSONException e) {
+            // Log JSON parsing error or handle it appropriately
+            Log.e("ServerCommunications", "JSON parsing error", e);
+            throw new IOException("JSON parsing error", e);
+        } catch (IOException e) {
+            // Log network or other IO errors and rethrow them
+            Log.e("ServerCommunications", "Network or IO error", e);
+            throw e;
         }
     }
 }
