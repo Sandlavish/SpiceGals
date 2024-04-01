@@ -88,6 +88,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Handler lightLevelHandler;
 
     private LatLng filteredLocation_ekf;
+
+    private LatLng filteredLocation; // You might need to adjust this method to suit your needs
     private Runnable lightLevelRunnable;
 
     private static final float INDOOR_OUTDOOR_THRESHOLD = 1000.0f;
@@ -434,9 +436,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         double filteredLon = stateEstimate[1];
 
         // Use the filtered coordinates to update the map
-        LatLng filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
+        filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
         filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
-        updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
 
         // Update the EKF with the new measurement
         ekf.update(z, H, R);
@@ -529,6 +530,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
                 // Process GNSS data through the Kalman filter
                 processLocationWithKalmanFilter(gnssLocation);
+                updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
 
                 handleLocationUpdates();
 
