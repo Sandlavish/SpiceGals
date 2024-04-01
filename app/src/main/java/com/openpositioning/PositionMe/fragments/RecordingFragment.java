@@ -352,7 +352,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(true);
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 16f ));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(PDRPOS, 19f ));
 
         setupMapComponents();
 
@@ -731,7 +731,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             public void onClick(View v) {
 
 
-                // Center the map on the current location of the user
+                // Center the map on the current fused location of the user
                 if (mMap != null) {
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(fusedLocation, 19f));
                 }
