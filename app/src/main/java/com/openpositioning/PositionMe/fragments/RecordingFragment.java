@@ -781,6 +781,27 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 }
             }
 
+            if (fusedLocation != null && WifiFilter != null) {
+                double errorFusedWifi = calculateDistanceBetween(fusedLocation, WifiFilter);
+                Log.d("LocationError", "Error between Fused and WiFi Location: " + errorFusedWifi + " meters");
+            } else {
+                Log.d("LocationError", "Fused or WiFi Location is null, cannot calculate error.");
+            }
+
+            if (fusedLocation != null && GNSSFilter != null) {
+                double errorFusedGnss = calculateDistanceBetween(fusedLocation, GNSSFilter);
+                Log.d("LocationError", "Error between Fused and GNSS Location: " + errorFusedGnss + " meters");
+            } else {
+                Log.d("LocationError", "Fused or GNSS Location is null, cannot calculate error.");
+            }
+
+            if (fusedLocation != null && PDRFilter != null) {
+                double errorFusedPdr = calculateDistanceBetween(fusedLocation, PDRFilter);
+                Log.d("LocationError", "Error between Fused and PDR Location: " + errorFusedPdr + " meters");
+            } else {
+                Log.d("LocationError", "Fused or PDR Location is null, cannot calculate error.");
+            }
+
 //            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
             updateMapWithFusedPosition(fusedLocation);
             updatePDRPath(fusedLocation);
