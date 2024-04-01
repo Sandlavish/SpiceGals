@@ -287,7 +287,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * from the SensorFusion class. After acquiring these details, it constructs a new
      * GNSS sample with this data, sets the provider to "fusion", and adds this sample
      * to the trajectory being built. If the current location data is not available,
-     * it logs an error message.
+     * it logs an error message. @author Michalis Voudaskas
      */
 
     private void onAddTagClicked() {
