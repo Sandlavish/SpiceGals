@@ -88,6 +88,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Handler lightLevelHandler;
 
     private LatLng filteredLocation_ekf;
+    private LatLng fusedLocation;
 
     private LatLng filteredLocation; // You might need to adjust this method to suit your needs
     private Runnable lightLevelRunnable;
@@ -803,24 +804,21 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             updatePDRPosition();
             fetchWifiLocationFromServer();
 
-            LatLng fusedPosition;
-
             if (WifiFilter == null) {
-                fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+                fusedLocation = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
             }
             else {
                 if (isOutdoor) {
-                    fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+                    fusedLocation = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
                 }
                 else {
-                    fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
+                    fusedLocation = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
                 }
             }
 
 //            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
-            updateMapWithFusedPosition(fusedPosition);
-            updatePDRPath(fusedPosition);
-
+            updateMapWithFusedPosition(fusedLocation);
+            updatePDRPath(fusedLocation);
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
