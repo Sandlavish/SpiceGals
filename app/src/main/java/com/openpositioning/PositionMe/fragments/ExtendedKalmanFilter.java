@@ -53,7 +53,7 @@ public class ExtendedKalmanFilter {
         P = MatrixOperations.multiply(I_KH, P);
     }
 
-    // The state transition model function (needs to be defined for your system)
+    // The state transition model function
     private double[] f(double[] x) {
         // Time step in seconds
         double dt = 1; // Adjust this based on your update frequency

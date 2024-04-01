@@ -445,8 +445,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Use the filtered coordinates to update the map
         filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-        LatLng filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
+        predictUserLocation();
 
+        LatLng filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
         // Update the EKF with the new measurement
         ekf.update(z, H, R);
 
@@ -467,9 +468,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Predict the next state
         ekf.predict(F, Q);
-
-        // Update UI with predicted location
-        //updateUIWithFilteredLocation();
     }
 
     private void updateMap(LatLng newLocation, LatLng filteredLocation_ekf) {
@@ -532,10 +530,18 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             public void run() {
                 // Fetch GNSS data from SensorFusion
                 gnssLocation = sensorFusion.getGNSSLatitude(false); // False indicates we're not fetching the initial start location
+                double latitude = gnssLocation[0];
+                double longitude = gnssLocation[1];
+                // Convert the newLocation to your measurement vector z
+                double[] z = { latitude, longitude};
 
+                // Construct the H and R matrices based on your system model and measurement noise
+                double[][] H = {{1, 0, 0, 0}, {0, 1, 0, 0}};
+                double[][] R = {{10, 0}, {0, 10}};
+                ekf.update(z, H, R);
                 // Process GNSS data through the Kalman filter
                 filteredLocation_ekf = processLocationWithKalmanFilter(gnssLocation);
-                updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
+                updateMap(filteredLocation, filteredLocation_ekf);
 
                 handleLocationUpdates();
 
