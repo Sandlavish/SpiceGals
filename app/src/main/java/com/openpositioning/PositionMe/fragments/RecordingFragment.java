@@ -1,4 +1,6 @@
 package com.openpositioning.PositionMe.fragments;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -775,33 +777,21 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 LocationResponse locationResponse = serverCommunications.sendWifiFingerprintToServer(wifiFingerprintJson);
 
                 getActivity().runOnUiThread(() -> {
-                    Log.d("RecordingFragment", "Received Wi-Fi location.");
+                    // Check if locationResponse is null, which indicates no WiFi coverage
+                    if (locationResponse == null) {
+                        Log.e("RecordingFragment", "No Wi-Fi coverage detected.");
+                        //Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
 
-                    LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
-
-                    // Simple no coverage detection based on invalid LatLng
-                    if (sensorFusion.getWifiList() == null) {
-                        Log.e("RecordingFragment", "No coverage: Invalid Wi-Fi location.");
-                        Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
+                        // Trigger blinking animation
+                        startBlinkingAnimation();
                         return; // Exit early
                     }
 
-//                    // Outlier detection: only add marker if within a reasonable distance from previous locations
-//                    if (isOutlier(wifiLocation)) {
-//                        Log.e("RecordingFragment", "Detected outlier Wi-Fi location.");
-//                        //Toast.makeText(getContext(), "Outlier detected, location not updated", Toast.LENGTH_LONG).show();
-//                    } else {
-//                        // Not an outlier, update the map
-//                        if (wifiMarker == null) {
-//                            wifiMarker = mMap.addMarker(new MarkerOptions()
-//                                    .position(wifiLocation)
-//                                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_add_location_24)))
-//                                    .visible(true)
-//                            );
-//                        } else {
-//                            wifiMarker.setPosition(wifiLocation);
-//                        }
-//                    }
+                    // Stop blinking animation if valid WiFi location is received
+                    stopBlinkingAnimation();
+
+                    Log.d("RecordingFragment", "Received Wi-Fi location.");
+                    LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
 
                     // Update the list of recent locations
                     updateWifiLocations(wifiLocation);
@@ -809,8 +799,33 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
+                getActivity().runOnUiThread(this::startBlinkingAnimation); // Start animation in case of exception
             }
         });
+    }
+
+    private void startBlinkingAnimation() {
+        // Assuming there's a UI element like a TextView or ImageView to blink
+        View uiElement = getView().findViewById(R.id.no_wiifi_id);
+
+        // Make the UI element visible
+        uiElement.setVisibility(View.VISIBLE);
+
+        // Set up the blinking animation
+        ObjectAnimator animator = ObjectAnimator.ofFloat(uiElement, "alpha", 0f, 1f);
+        animator.setDuration(800); // Duration of one blink
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setRepeatMode(ValueAnimator.REVERSE);
+        animator.start();
+    }
+
+    private void stopBlinkingAnimation() {
+        // Assuming the same UI element is used to indicate no WiFi coverage
+        View uiElement = getView().findViewById(R.id.no_wiifi_id);
+
+        // Stop the blinking and hide the UI element
+        uiElement.clearAnimation();
+        uiElement.setVisibility(View.GONE);
     }
     // check if the most recent wifi is an outlier by comparing with the average of the last 5 wifi positions
     private boolean isOutlier(LatLng newLocation) {
