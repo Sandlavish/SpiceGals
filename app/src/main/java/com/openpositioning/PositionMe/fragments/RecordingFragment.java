@@ -54,6 +54,7 @@ import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.ServerCommunications;
+import com.openpositioning.PositionMe.Traj;
 import com.openpositioning.PositionMe.sensors.LocationResponse;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
@@ -115,6 +116,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private TextView distanceTravelled;
 
     private FloorOverlayManager floorOverlayManager;
+    private Traj.Trajectory.Builder trajectory;
 
     private MapManager mapManager;
 
@@ -252,6 +254,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         this.kalmanFilter = new KalmanLatLong(Q_METRES_PER_SECOND); // Ensure you have defined Q_METRES_PER_SECOND appropriately
         this.wifiFPManager = WifiFPManager.getInstance();
         serverCommunications = new ServerCommunications(context);
+
+        // Initialize trajectory
+        trajectory = Traj.Trajectory.newBuilder();
+        // If Trajectory.Builder requires more parameters or a starting timestamp, set them here.
+        trajectory.setStartTimestamp(System.currentTimeMillis());
     }
 
     /**
@@ -267,7 +274,62 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
         getActivity().setTitle("Recording...");
         initializeMap();
+        // Set up the "Add Tag" button
+        Button addTagButton = rootView.findViewById(R.id.button_add_tag);
+        addTagButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onAddTagClicked();
+            }
+        });
+
         return rootView;
+    }
+
+    private void onAddTagClicked() {
+        Log.d("RecordingFragment", "Add tag button clicked");
+
+        if (trajectory == null) {
+            Log.e("RecordingFragment", "Trajectory builder is null. Cannot add GNSS sample.");
+            return; // Consider initializing it here if that's appropriate
+        }
+
+        long currentTimestamp = System.currentTimeMillis();
+        long relativeTimestamp = currentTimestamp - trajectory.getStartTimestamp();
+
+        Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
+        Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
+        Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
+
+        // Get the current location
+        float [] currentLocation = sensorFusion.getGNSSLatitude(false); // Replace with fused location if necessary
+
+        if (currentLocation != null) {
+            Log.d("RecordingFragment", "Current GNSS location retrieved: Latitude = "
+                    + currentLocation[0] + ", Longitude = " + currentLocation[1]);
+
+            float currentElevation = sensorFusion.getElevation();
+            Log.d("RecordingFragment", "Current Elevation retrieved: " + currentElevation);
+
+            // Build the GNSS sample
+            Traj.GNSS_Sample.Builder sampleBuilder = Traj.GNSS_Sample.newBuilder()
+                    .setAltitude(currentElevation)
+                    .setLatitude(currentLocation[0])
+                    .setLongitude(currentLocation[1])
+                    .setProvider("fusion")
+                    .setRelativeTimestamp(relativeTimestamp);
+
+            // Log the details of the sample being added
+            Traj.GNSS_Sample gnssSample = sampleBuilder.build();
+            Log.d("RecordingFragment", "GNSS Sample built: " + gnssSample.toString());
+
+            // Add the new GNSS_Sample to the gnss_data list
+            trajectory.addGnssData(gnssSample);
+            Log.d("RecordingFragment", "GNSS Sample added to trajectory");
+
+        } else {
+            Log.e("RecordingFragment", "Current GNSS location is null. GNSS Sample not added.");
+        }
     }
 
     private void initializeMap() {
@@ -320,7 +382,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         LatLng newLocation = new LatLng(latitude, longitude);
         updateGnssLocations(newLocation);
         updateLocationMarkers();
-        // Update the map with the new location
+        // Update the map with the new locationw
         // updateMap(newLocation);
         //updateMap(newLocation); // Update the map with the new location
         floorOverlayManager.isUserNearGroundFloor = floorOverlayManager.buildingBounds.contains(newLocation);
