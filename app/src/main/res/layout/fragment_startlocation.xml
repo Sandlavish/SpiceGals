@@ -97,7 +97,7 @@
                     android:backgroundTint="#B2D81E1E"
                     android:dropDownWidth="match_parent"
                     android:entries="@array/map_types"
-                    android:padding="8dp"
+                    android:padding="15dp"
                     android:radius="50dp"
                     android:spinnerMode="dialog"
                     android:textColor="@color/ic_launcher_simple_background"
