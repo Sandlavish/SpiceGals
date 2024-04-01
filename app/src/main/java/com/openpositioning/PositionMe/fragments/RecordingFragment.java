@@ -104,7 +104,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private LatLngBounds TestingBounds;
     //Compass icon to show user direction of heading
     private ImageView compassIcon;
-
+    private LatLng wifiLocation;
     float elevationVal;
     // Elevator icon to show elevator usage
     private ImageView elevatorIcon;
@@ -163,7 +163,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private boolean arePDRMarkersVisible = true;
 
     private static final int MAX_RECENT_LOCATIONS = 5;
-    private static final double OUTLIER_THRESHOLD_METERS = 5;
+    private static final double OUTLIER_THRESHOLD_METERS = 1;
     //Particle Filter
     private ParticleFilter particleFilter;
     private Marker FusedMarker;
@@ -821,7 +821,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
     /**
      Method to send the json fingerprint to the server and receive the latlong resposne
-     Also checks if the wifi list is empty and notifies the user that there is no wifi coverage @author Michalis Voudaskas
+     Also checks if the wifi list is empty or the server response is null and notifies the user that there is no wifi coverage @author Michalis Voudaskas
      */
 
     private void fetchWifiLocationFromServer() {
@@ -845,7 +845,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     stopBlinkingAnimation();
 
                     Log.d("RecordingFragment", "Received Wi-Fi location.");
-                    LatLng wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
+                    wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
 
                     // Update the list of recent locations
                     updateWifiLocations(wifiLocation);
