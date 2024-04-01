@@ -34,16 +34,11 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.preference.PreferenceManager;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.GroundOverlay;
-import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -257,8 +252,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Initialize trajectory
         trajectory = Traj.Trajectory.newBuilder();
-        // If Trajectory.Builder requires more parameters or a starting timestamp, set them here.
-        trajectory.setStartTimestamp(System.currentTimeMillis());
     }
 
     /**
@@ -286,6 +279,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return rootView;
     }
 
+    /**
+     * Handles the logic when the "Add tag" button is clicked in the recording fragment.
+     * This method calculates the relative timestamp based on the current system time and
+     * the absolute start time of the recording obtained from the SensorFusion instance.
+     * It then retrieves the current fused location (latitude and longitude) and elevation
+     * from the SensorFusion class. After acquiring these details, it constructs a new
+     * GNSS sample with this data, sets the provider to "fusion", and adds this sample
+     * to the trajectory being built. If the current location data is not available,
+     * it logs an error message.
+     */
+
     private void onAddTagClicked() {
         Log.d("RecordingFragment", "Add tag button clicked");
 
@@ -295,7 +299,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
 
         long currentTimestamp = System.currentTimeMillis();
-        long relativeTimestamp = currentTimestamp - trajectory.getStartTimestamp();
+        long relativeTimestamp = currentTimestamp - sensorFusion.getAbsoluteStartTime();
 
         Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
         Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
