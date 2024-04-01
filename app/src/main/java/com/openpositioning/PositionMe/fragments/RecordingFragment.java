@@ -32,6 +32,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
@@ -47,6 +49,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.material.navigation.NavigationView;
 import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
@@ -236,6 +239,30 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         initializeMap();
         // Set up the "Add Tag" button
         Button addTagButton = rootView.findViewById(R.id.button_add_tag);
+
+        NavigationView navigationView = rootView.findViewById(R.id.navigation_view);
+        navigationView.setNavigationItemSelectedListener(item -> {
+            // Handle navigation view item clicks here.
+            int id = item.getItemId();
+            if (id == R.id.nav_stop) {
+                sensorFusion.stopRecording();
+                // Define the navigation action
+                NavDirections action = RecordingFragmentDirections.actionRecordingFragmentToCorrectionFragment();
+                // Use the action to navigate
+                Navigation.findNavController(getView()).navigate(action);
+
+            } else if (id == R.id.nav_cancel) {
+                    sensorFusion.stopRecording();
+                    NavDirections action = RecordingFragmentDirections.actionRecordingFragmentToHomeFragment();
+                    Navigation.findNavController(getView()).navigate(action);
+                    if(autoStop != null) autoStop.cancel();
+                // Handle the cancel action
+            }
+            // Add more else if statements for other menu items
+            DrawerLayout drawer = rootView.findViewById(R.id.drawer_layout);
+            drawer.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
         addTagButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -884,12 +911,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void stopBlinkingAnimation() {
-        // Assuming the same UI element is used to indicate no WiFi coverage
-        View uiElement = getView().findViewById(R.id.no_wiifi_id);
-
-        // Stop the blinking and hide the UI element
-        uiElement.clearAnimation();
-        uiElement.setVisibility(View.GONE);
+        View rootView = getView();
+        if (rootView != null) {
+            View uiElement = rootView.findViewById(R.id.no_wiifi_id);
+            uiElement.clearAnimation();
+            uiElement.setVisibility(View.GONE);
+        }
     }
     // check if the most recent wifi is an outlier by comparing with the average of the last 5 wifi positions
     private boolean isOutlier(LatLng newLocation) {
