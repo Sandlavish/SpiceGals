@@ -535,7 +535,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
                 // Process GNSS data through the Kalman filter
                 filteredLocation_ekf = processLocationWithKalmanFilter(gnssLocation);
-                updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
+                updateMap(filteredLocation, filteredLocation_ekf);
 
                 handleLocationUpdates();
 
