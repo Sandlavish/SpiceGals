@@ -462,7 +462,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private void updateIndoorOutdoorStatus() {
         // Fetch the latest GNSS location from sensor fusion
         float[] gnssLocation = sensorFusion.getGNSSLatitude(false);
-        LatLng currentLocation = new LatLng(gnssLocation[0], gnssLocation[1]);
+        LatLng currentLocation = new LatLng(gnssLocation[0], gnssLocation[1]); //change to fused
 
         // Check if user is within any building bounds
         boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(currentLocation) || floorOverlayManager.buildingBoundsLibrary.contains(currentLocation);
@@ -816,7 +816,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
                 getActivity().runOnUiThread(() -> {
                     // Check if locationResponse is null, which indicates no WiFi coverage
-                    if (locationResponse == null) {
+                    if (locationResponse == null || sensorFusion.getWifiList() == null) {
                         Log.e("RecordingFragment", "No Wi-Fi coverage detected.");
                         //Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
 
