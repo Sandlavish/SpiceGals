@@ -99,7 +99,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Button stopButton;
     private Button cancelButton;
     //Recording icon to show user recording is in progress
-    private ImageView recIcon;
+    private ImageView recIcon, rcntr;
 
     private LatLngBounds TestingBounds;
     //Compass icon to show user direction of heading
@@ -732,6 +732,21 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         Button btnToggleMarkers = view.findViewById(R.id.btnToggleMarkers);
         btnToggleMarkers.setOnClickListener(v -> showToggleMarkersDialog());
+
+        rcntr = view.findViewById(R.id.rcntr);
+        rcntr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Get Current Location
+                float[] latestgnss = sensorFusion.getGNSSLatitude(false); //use fused
+                LatLng gnssLocationLatlng = new LatLng(latestgnss[0], latestgnss[1]);
+
+                // Center the map on the current location of the user
+                if (mMap != null) {
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(gnssLocationLatlng, 19f));
+                }
+            }
+        });
     }
 
     /**
