@@ -146,7 +146,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private Marker ekfmarker;
-    
+
+    private List<LatLng> recentFusedLocations = new ArrayList<>();
+    private static final int MOVING_AVERAGE_WINDOW = 5; // Number of locations to average
 
     private ExtendedKalmanFilter ekf;
     private Spinner floorSelectionSpinner;
@@ -790,8 +792,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
 
 //            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
-            updateMapWithFusedPosition(fusedLocation);
-            updatePDRPath(fusedLocation);
+            recentFusedLocations.add(fusedLocation);
+            while (recentFusedLocations.size() > MOVING_AVERAGE_WINDOW) {
+                recentFusedLocations.remove(0); // Remove the oldest location to maintain window size
+            }
+
+            LatLng movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
+
+            updateMapWithFusedPosition(movingAverageFusedLocation);
+            updatePDRPath(movingAverageFusedLocation);
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
