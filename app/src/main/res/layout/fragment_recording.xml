@@ -17,107 +17,118 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <!--        <Button-->
+        <!--            android:id="@+id/stopButton"-->
+        <!--            android:layout_width="154dp"-->
+        <!--            android:layout_height="52dp"-->
+        <!--            android:layout_marginEnd="20dp"-->
+        <!--            android:layout_marginBottom="24dp"-->
+        <!--            android:background="@drawable/rounded_button"-->
+        <!--            android:text="@string/stop"-->
+        <!--            android:textSize="18sp"-->
+        <!--            app:icon="@drawable/ic_baseline_stop_24"-->
+        <!--            app:iconGravity="start"-->
+        <!--            app:iconSize="30dp"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent" />-->
+
+        <!--        <Button-->
+        <!--            android:id="@+id/cancelButton"-->
+        <!--            android:layout_width="149dp"-->
+        <!--            android:layout_height="53dp"-->
+        <!--            android:layout_marginStart="32dp"-->
+        <!--            android:layout_marginBottom="24dp"-->
+        <!--            android:background="@drawable/rounded_button"-->
+        <!--            android:text="@string/cancel"-->
+        <!--            android:textSize="18sp"-->
+        <!--            app:icon="@drawable/ic_baseline_cancel_24"-->
+        <!--            app:iconGravity="start"-->
+        <!--            app:iconSize="28dp"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintStart_toStartOf="parent" />-->
+
         <Button
             android:id="@+id/stopButton"
-            android:layout_width="150dp"
-            android:layout_height="70dp"
-            android:layout_marginEnd="32dp"
-            android:layout_marginBottom="24dp"
-            android:text="@string/stop"
-            android:textSize="24sp"
+            android:layout_width="124dp"
+            android:layout_height="59dp"
+            android:backgroundTint="@color/black"
+            android:text="Stop"
+            app:cornerRadius="50dp"
             app:icon="@drawable/ic_baseline_stop_24"
-            app:iconGravity="start"
-            app:iconSize="30dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.947"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.874" />
 
         <Button
             android:id="@+id/cancelButton"
-            android:layout_width="150dp"
-            android:layout_height="70dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginBottom="24dp"
-            android:text="@string/cancel"
-            android:textSize="16sp"
+            android:layout_width="125dp"
+            android:layout_height="60dp"
+            android:backgroundTint="@color/black"
+            android:text="Cancel"
+            app:cornerRadius="50dp"
             app:icon="@drawable/ic_baseline_cancel_24"
-            app:iconGravity="start"
-            app:iconSize="28dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-        <ProgressBar
-            android:id="@+id/timeRemainingBar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="8dp"
-            android:elevation="2sp"
-            android:max="1800"
-            android:progress="0"
-            app:layout_constraintBottom_toTopOf="@+id/stopButton"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintHorizontal_bias="0.947"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.976" />
 
         <androidx.cardview.widget.CardView
             android:id="@+id/currentPositionCard"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
+            android:layout_width="276dp"
+            android:layout_height="75dp"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            app:cardBackgroundColor="@color/pastelBlue"
+            android:backgroundTint="#000000"
+            app:background="@drawable/rounded_button"
+            app:cardBackgroundColor="@color/black"
             app:cardCornerRadius="20dp"
             app:cardElevation="8dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintHorizontal_bias="0.1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:background="@drawable/rounded_button"
+                android:backgroundTint="#000000">
 
                 <TextView
                     android:id="@+id/currentXPos"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_width="43dp"
+                    android:layout_height="21dp"
+                    android:layout_marginStart="60dp"
                     android:text="@string/x"
                     android:textColor="@color/LightYellow"
-                    android:textSize="24sp"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <TextView
-                    android:id="@+id/currentElevation"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="52dp"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/elevation"
-                    android:textColor="@color/LightYellow"
-                    android:textSize="18sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/currentXPos" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.196" />
 
                 <TextView
                     android:id="@+id/currentYPos"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_width="43dp"
+                    android:layout_height="20dp"
+                    android:layout_marginTop="12dp"
                     android:layout_marginEnd="16dp"
                     android:text="@string/y"
                     android:textColor="@color/LightYellow"
-                    android:textSize="24sp"
+                    android:textSize="15sp"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="1.0"
+                    app:layout_constraintHorizontal_bias="0.103"
                     app:layout_constraintStart_toEndOf="@+id/currentXPos"
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/currentDistanceTraveled"
-                    android:layout_width="50dp"
-                    android:layout_height="22dp"
+                    android:layout_width="42dp"
+                    android:layout_height="21dp"
                     android:layout_marginStart="8dp"
                     android:text="@string/meter"
                     android:textColor="@color/LightYellow"
@@ -127,157 +138,160 @@
                     app:layout_constraintHorizontal_bias="0.0"
                     app:layout_constraintStart_toEndOf="@+id/distanceTravelledTitle"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.449" />
+                    app:layout_constraintVertical_bias="0.196" />
 
                 <TextView
                     android:id="@+id/distanceTravelledTitle"
-                    android:layout_width="118dp"
-                    android:layout_height="40dp"
+                    android:layout_width="60dp"
+                    android:layout_height="21dp"
                     android:text="@string/distance_travelled"
                     android:textColor="@color/LightYellow"
-                    android:textSize="14sp"
+                    android:textSize="15sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.121"
+                    app:layout_constraintHorizontal_bias="0.745"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:id="@+id/compass"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="72dp"
-                    android:layout_marginEnd="72dp"
-                    android:src="@drawable/ic_baseline_navigation_white_24"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@+id/currentElevation" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.196" />
 
                 <ImageView
                     android:id="@+id/elevatorImage"
-                    android:layout_width="31dp"
-                    android:layout_height="34dp"
-                    android:layout_marginStart="16dp"
+                    android:layout_width="29dp"
+                    android:layout_height="25dp"
+                    android:layout_marginStart="64dp"
                     android:elevation="2dp"
                     android:src="@drawable/ic_baseline_elevator_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.277" />
+                    app:layout_constraintVertical_bias="0.795" />
+
+                <ImageView
+                    android:id="@+id/compass"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_baseline_navigation_white_24"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.018"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.483" />
+
+                <TextView
+                    android:id="@+id/currentElevation"
+                    android:layout_width="97dp"
+                    android:layout_height="24dp"
+                    android:text="@string/elevation"
+                    android:textColor="@color/LightYellow"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.539"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.792" />
+
+                <ImageView
+                    android:id="@+id/redDot"
+                    android:layout_width="37dp"
+                    android:layout_height="35dp"
+                    android:layout_marginTop="32dp"
+                    android:contentDescription="@string/recording"
+                    android:src="@drawable/ic_baseline_red_dot_24"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.944"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.cardview.widget.CardView>
 
-        <ImageView
-            android:id="@+id/redDot"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:contentDescription="@string/recording"
-            android:src="@drawable/ic_baseline_red_dot_24"
+
+        <Spinner
+            android:id="@+id/floorSelectionSpinner"
+            android:layout_width="86dp"
+            android:layout_height="37dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/spinnerbutton"
+            android:backgroundTint="#68D81E1E"
+            android:dropDownWidth="match_parent"
+            android:entries="@array/map_types"
+            android:padding="8dp"
+            android:radius="50dp"
+            android:spinnerMode="dialog"
+            android:textColor="@color/ic_launcher_simple_background"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.224" />
 
         <Spinner
             android:id="@+id/mapTypeSpinner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_width="86dp"
+            android:layout_height="37dp"
+            android:layout_marginStart="12dp"
             android:background="@drawable/spinnerbutton"
+            android:backgroundTint="#68D81E1E"
+            android:dropDownWidth="match_parent"
             android:entries="@array/map_types"
             android:padding="8dp"
+            android:radius="50dp"
+            android:spinnerMode="dialog"
+            android:textColor="@color/ic_launcher_simple_background"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.164" />
+            app:layout_constraintVertical_bias="0.152" />
 
         <Button
-            android:id="@+id/btnGroundFloor"
-            android:layout_width="130dp"
-            android:layout_height="39dp"
-            android:text="Ground Floor"
-            android:visibility="visible"
+            android:id="@+id/button_add_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="588dp"
+            android:backgroundTint="@color/black"
+            android:onClick="onAddTagButtonClicked"
+            android:text="Add Tag"
+            app:cornerRadius="50dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.935"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.8" />
-
-        <Button
-            android:id="@+id/btnFirstFloor"
-            android:layout_width="128dp"
-            android:layout_height="38dp"
-            android:layout_marginBottom="12dp"
-            android:text="First Floor"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@+id/btnGroundFloor"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.929"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnSecondFloor"
-            app:layout_constraintVertical_bias="1.0" />
-
-        <Button
-            android:id="@+id/btnSecondFloor"
-            android:layout_width="128dp"
-            android:layout_height="38dp"
-            android:text="Second Floor"
-            android:visibility="visible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.929"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.65" />
-
-        <Button
-            android:id="@+id/btnThirdFloor"
-            android:layout_width="128dp"
-            android:layout_height="38dp"
-            android:text="Third Floor"
-            android:visibility="visible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.929"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.568" />
+            app:layout_constraintHorizontal_bias="0.958"
+            app:layout_constraintStart_toStartOf="parent" />
 
         <Button
             android:id="@+id/btnToggleMarkers"
-            android:layout_width="121dp"
-            android:layout_height="42dp"
+            android:layout_width="123dp"
+            android:layout_height="64dp"
             android:layout_gravity="center_horizontal"
             android:layout_margin="16dp"
-            android:layout_marginTop="32dp"
-            android:layout_marginEnd="16dp"
+            android:backgroundTint="@color/black"
             android:text="Markers"
+            android:textSize="10sp"
+            app:cornerRadius="50dp"
+            app:icon="@drawable/ic_launcher_simple_foreground"
+            app:iconPadding="-10dp"
+            app:iconSize="48dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/currentPositionCard" />
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.785" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="103dp"
+            android:layout_height="70dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:layout_margin="10dp"
             android:background="@android:color/white"
             android:orientation="vertical"
             android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:layout_margin="10dp"
-            android:background="@android:color/white"
-            android:orientation="vertical"
-            android:padding="8dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.013">
             <!-- PDR Location Legend Item -->
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -295,7 +309,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=" PDR Location"
-                    android:textSize="12sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
 
             <!-- GNSS Location Legend Item -->
@@ -315,7 +329,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=" GNSS Location"
-                    android:textSize="12sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
 
             <!-- Wi-Fi Location Legend Item -->
@@ -335,7 +349,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=" Wi-Fi Location"
-                    android:textSize="12sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
 
             <!-- Outlier Location Legend Item -->
@@ -355,10 +369,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=" Outlier Location"
-                    android:textSize="12sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
         </LinearLayout>
-
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

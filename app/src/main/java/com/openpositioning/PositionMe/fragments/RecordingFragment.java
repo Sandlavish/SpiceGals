@@ -34,16 +34,11 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.preference.PreferenceManager;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.GroundOverlay;
-import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -54,6 +49,7 @@ import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.ServerCommunications;
+import com.openpositioning.PositionMe.Traj;
 import com.openpositioning.PositionMe.sensors.LocationResponse;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 import com.openpositioning.PositionMe.sensors.SensorTypes;
@@ -119,6 +115,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private TextView distanceTravelled;
 
     private FloorOverlayManager floorOverlayManager;
+    private Traj.Trajectory.Builder trajectory;
 
     private MapManager mapManager;
 
@@ -142,6 +139,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Marker ekfmarker;
 
     private ExtendedKalmanFilter ekf;
+    private Spinner floorSelectionSpinner;
+
 
     private Boolean wasPreviouslyOutdoor = null; // null indicates no previous status
 
@@ -230,7 +229,73 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
         getActivity().setTitle("Recording...");
         initializeMap();
+        // Set up the "Add Tag" button
+        Button addTagButton = rootView.findViewById(R.id.button_add_tag);
+        addTagButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onAddTagClicked();
+            }
+        });
+
         return rootView;
+    }
+
+    /**
+     * Handles the logic when the "Add tag" button is clicked in the recording fragment.
+     * This method calculates the relative timestamp based on the current system time and
+     * the absolute start time of the recording obtained from the SensorFusion instance.
+     * It then retrieves the current fused location (latitude and longitude) and elevation
+     * from the SensorFusion class. After acquiring these details, it constructs a new
+     * GNSS sample with this data, sets the provider to "fusion", and adds this sample
+     * to the trajectory being built. If the current location data is not available,
+     * it logs an error message. @author Michalis Voudaskas
+     */
+
+    private void onAddTagClicked() {
+        Log.d("RecordingFragment", "Add tag button clicked");
+
+        if (trajectory == null) {
+            Log.e("RecordingFragment", "Trajectory builder is null. Cannot add GNSS sample.");
+            return; // Consider initializing it here if that's appropriate
+        }
+
+        long currentTimestamp = System.currentTimeMillis();
+        long relativeTimestamp = currentTimestamp - sensorFusion.getAbsoluteStartTime();
+
+        Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
+        Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
+        Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
+
+        // Get the current location
+        float [] currentLocation = sensorFusion.getGNSSLatitude(false); // Replace with fused location if necessary
+
+        if (currentLocation != null) {
+            Log.d("RecordingFragment", "Current GNSS location retrieved: Latitude = "
+                    + currentLocation[0] + ", Longitude = " + currentLocation[1]);
+
+            float currentElevation = sensorFusion.getElevation();
+            Log.d("RecordingFragment", "Current Elevation retrieved: " + currentElevation);
+
+            // Build the GNSS sample
+            Traj.GNSS_Sample.Builder sampleBuilder = Traj.GNSS_Sample.newBuilder()
+                    .setAltitude(currentElevation)
+                    .setLatitude(currentLocation[0])
+                    .setLongitude(currentLocation[1])
+                    .setProvider("fusion")
+                    .setRelativeTimestamp(relativeTimestamp);
+
+            // Log the details of the sample being added
+            Traj.GNSS_Sample gnssSample = sampleBuilder.build();
+            Log.d("RecordingFragment", "GNSS Sample built: " + gnssSample.toString());
+
+            // Add the new GNSS_Sample to the gnss_data list
+            trajectory.addGnssData(gnssSample);
+            Log.d("RecordingFragment", "GNSS Sample added to trajectory");
+
+        } else {
+            Log.e("RecordingFragment", "Current GNSS location is null. GNSS Sample not added.");
+        }
     }
 
     private void initializeMap() {
@@ -277,6 +342,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         double latitude = gnssLocation[0];
         double longitude = gnssLocation[1];
+        LatLng gnssLatLng = new LatLng(gnssLocation[0], gnssLocation[1]);
 
         // Create a new LatLng object for the GNSS location
         LatLng newLocation = new LatLng(latitude, longitude);
@@ -286,6 +352,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         //updateMap(newLocation); // Update the map with the new location
         floorOverlayManager.isUserNearGroundFloor = floorOverlayManager.buildingBounds.contains(newLocation);
         floorOverlayManager.isuserNearGroundFloorLibrary = floorOverlayManager.buildingBounds.contains(newLocation);
+
+        if (floorSelectionSpinner == null) {
+            return; // Spinner not initialized yet, so we exit the method early
+        }
+        boolean inBuilding = floorOverlayManager.buildingBounds.contains(gnssLatLng) || floorOverlayManager.buildingBoundsLibrary.contains(gnssLatLng);
+        floorSelectionSpinner.setVisibility(inBuilding ? View.VISIBLE : View.GONE);
     }
 
     private Bitmap getBitmapFromVector(Context context, int vectorResId) {
@@ -366,7 +438,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             ekfmarker.setPosition(filteredLocation_ekf);
         }
         // Consider not animating the camera every update to avoid jitter
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
+        //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
     private void startIndoorOutdoorDetection() {
@@ -497,6 +569,38 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
         Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
 
+        Spinner floorSelectionSpinner = view.findViewById(R.id.floorSelectionSpinner);
+
+        floorSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                FloorOverlayManager.Floor selectedFloor = FloorOverlayManager.Floor.GROUND; // Default to GROUND, adjust based on position
+                switch (position) {
+                    case 0:
+                        selectedFloor = FloorOverlayManager.Floor.GROUND;
+                        break;
+                    case 1:
+                        selectedFloor = FloorOverlayManager.Floor.FIRST;
+                        break;
+                    case 2:
+                        selectedFloor = FloorOverlayManager.Floor.SECOND;
+                        break;
+                    case 3:
+                        selectedFloor = FloorOverlayManager.Floor.THIRD;
+                        break;
+                }
+                //floorOverlayManager.updateFloorOverlays(FloorOverlayManager.Floor.selectedFloor);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(), R.array.floor_names, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        floorSelectionSpinner.setAdapter(adapter);
+
         // Setup GNSS updates
         setupGnssUpdates();
 
@@ -566,7 +670,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         });
 
         // Display the progress of the recording when a max record length is set
-        this.timeRemaining = getView().findViewById(R.id.timeRemainingBar);
+        //this.timeRemaining = getView().findViewById(R.id.timeRemainingBar);
 
         // Display a blinking red dot to show recording is in progress
         blinkingRecording();
@@ -642,6 +746,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         public void run() {
             // Get new position
             float[] pdrValues = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+            float[] gnssValues = sensorFusion.getGNSSLatitude(false);
+
+            LatLng PDRFilter = convertMetersToLatLng(pdrValues, PDRPOS);
+            LatLng GNSSFilter = new LatLng(gnssValues[0], gnssValues[1]);
+
             positionX.setText(getString(R.string.x, String.format("%.1f", pdrValues[0])));
             positionY.setText(getString(R.string.y, String.format("%.1f", pdrValues[1])));
             // Calculate distance travelled
@@ -650,7 +759,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
             fetchLocation();
-            applyFilter();
+
+//            if (isOutdoor) {
+//                updateParticleFilterPositions(PDRFilter, GNSSFilter, GNSSFilter);
+//            }
+//            else {
+//                updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+//            }
+
+            LatLng fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+            updateMapWithFusedPosition(fusedPosition);
+
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
             // Display elevation and elevator icon when necessary
@@ -912,35 +1031,41 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             double longitude = startloc[1];
             // Create a new LatLng object for the GNSS location
             LatLng filterstartloc = new LatLng(latitude, longitude);
-            particleFilter = new ParticleFilter(100, filterstartloc);
+            particleFilter = new ParticleFilter(50, filterstartloc);
         }
     }
 
-    private void applyFilter(){
-        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
-        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+//    private void applyParticleFilter(){
+//        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
+//        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+//
+//        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
+//        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
+//
+//        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+//    }
 
-        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
-        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
-
-        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
-    }
-
-    private void updateParticleFilterPositions(LatLng gnssPosition, LatLng pdrPosition, LatLng wifiPosition) {
+    private LatLng updateParticleFilterPositions(LatLng predictPos, LatLng UpdatePos1, LatLng UpdatePos2) {
         if (particleFilter != null) {
             // Assuming a small measurement noise for demonstration. Adjust based on actual data quality.
             float measurementNoise = 5.0f; // Meters, adjust as needed
 
             // Update particle filter with GNSS, PDR, and WiFi positions
             // You can adjust the measurement noise for each type of update depending on their reliability
-            particleFilter.updateFilter(pdrPosition, gnssPosition, wifiPosition, measurementNoise);
+            particleFilter.updateFilter(predictPos, UpdatePos1, UpdatePos2, measurementNoise);
 
             // Optionally, get and use the fused position
             LatLng fusedPosition = particleFilter.getFusedPosition();
-            updateMapWithFusedPosition(fusedPosition);
+            return fusedPosition;
+//            updateMapWithFusedPosition(fusedPosition);
         }
+        return null;
     }
     private void updateMapWithFusedPosition(LatLng position) {
+
+        if (position == null) {
+            return;
+        }
         float mapBearing = mMap.getCameraPosition().bearing; // Map's bearing in degrees
         float azimuthInRadians = sensorFusion.passOrientation();
         float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
@@ -1046,4 +1171,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             marker.setVisible(arePDRMarkersVisible);
         }
     }
+
 }
+

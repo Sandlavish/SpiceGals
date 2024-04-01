@@ -27,12 +27,13 @@ public class FloorOverlayManager {
     public static LatLng southwestcornerLibrary;
     public static LatLng northeastcornerLibrary;
 
+    private Floor userSelectedFloor = null; // null indicates no floor has been manually selected
+
     private boolean userIsOnFirstFloor = false; // Default to ground floor
     private boolean userIsOnGroundFloor = false; //Ground floor is only visible when we are near the building
     private boolean userIsOnSecondFloor = false; // Default to ground floor
     private boolean userIsOnThirdFloor = false; // Default to ground floor
 
-    private Polyline pdrPolyline;
     public GroundOverlay groundflooroverlay;
     public GroundOverlay firstflooroverlay;
     public GroundOverlay secondflooroverlay;
@@ -71,7 +72,28 @@ public class FloorOverlayManager {
     }
 
     public void updateFloorOverlays(float elevation) {
+
         resetOverlayVisibilityFlags();
+
+        if (userSelectedFloor != null) {
+            switch (userSelectedFloor) {
+                case GROUND:
+                    groundFloorVisible = true;
+                    break;
+                case FIRST:
+                    firstFloorVisible = true;
+                    break;
+                case SECOND:
+                    secondFloorVisible = true;
+                    break;
+                case THIRD:
+                    thirdFloorVisible = true;
+                    break;
+            }
+            // Update overlays based on the current visibility flags
+            setFloorVisibility(groundFloorVisible, firstFloorVisible, secondFloorVisible, thirdFloorVisible);
+        }
+
         // Determine the floor based on elevation
         Floor targetFloor = determineFloorByElevation(elevation);
 
@@ -97,6 +119,9 @@ public class FloorOverlayManager {
             currentFloor = targetFloor;
         }
     }
+
+
+
 
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
@@ -187,7 +212,7 @@ public class FloorOverlayManager {
 
 
     // Floor enumeration to represent different floor levels
-    private enum Floor {
+    public static enum Floor {
         GROUND, FIRST, SECOND, THIRD
     }
 }

@@ -395,6 +395,9 @@ public class SensorFusion implements SensorEventListener, Observer {
             this.trajectory.addWifiData(wifiData);
         }
     }
+    public long getAbsoluteStartTime() {
+        return this.absoluteStartTime;
+    }
 
     /**
      * Method used for converting an array of orientation angles into a rotation matrix.
