@@ -54,7 +54,7 @@ public class WifiFPManager {
                 return gson.toJson(finalStructure);
             }
         } catch (Exception e) {
-            Log.e("WifiFPManager", "Error creating JSON", e);
+          // Log.e("WifiFPManager", "Error creating JSON", e);
         }
         return "{}";
     }

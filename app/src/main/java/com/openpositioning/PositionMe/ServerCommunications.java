@@ -454,7 +454,7 @@ public class ServerCommunications implements Observable {
      * @author Michalis Voudaskas
      */
     public LocationResponse sendWifiFingerprintToServer(String jsonWifiFingerprint) throws IOException {
-        Log.d("ServerCommunications", "JSON being sent: " + jsonWifiFingerprint);
+       // Log.d("ServerCommunications", "JSON being sent: " + jsonWifiFingerprint);
 
         OkHttpClient client = new OkHttpClient();
         String apiUrl = "https://openpositioning.org/api/position/fine";
@@ -471,7 +471,7 @@ public class ServerCommunications implements Observable {
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 String responseData = response.body().string();
-                Log.d("ServerCommunications", "Response received: " + responseData);
+                //Log.d("ServerCommunications", "Response received: " + responseData);
 
                 JSONObject jsonObj = new JSONObject(responseData);
                 double latitude = jsonObj.optDouble("lat", Double.NaN); // Default to NaN if not present
@@ -480,12 +480,12 @@ public class ServerCommunications implements Observable {
                 return new LocationResponse(latitude, longitude, floor);
             } else {
                 // Log error and return null to indicate no WiFi coverage
-                Log.e("ServerCommunications", "Error response received. No Wi-Fi coverage.");
+               // Log.e("ServerCommunications", "Error response received. No Wi-Fi coverage.");
                 return null;
             }
         } catch (Exception e) {
             // Log error and return null to indicate no WiFi coverage
-            Log.e("ServerCommunications", "Error sending WiFi fingerprint", e);
+          //  Log.e("ServerCommunications", "Error sending WiFi fingerprint", e);
             return null;
         }
     }

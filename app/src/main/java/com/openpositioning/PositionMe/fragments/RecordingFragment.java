@@ -74,6 +74,7 @@ import java.util.concurrent.Executors;
  * @see SensorFusion the class containing sensors and recording.
  *
  * @author Mate Stodulka
+ *
  */
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
@@ -300,17 +301,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         long currentTimestamp = System.currentTimeMillis();
         long relativeTimestamp = currentTimestamp - sensorFusion.getAbsoluteStartTime();
 
-        Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
-        Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
-        Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
+//        Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
+//        Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
+//        Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
 
 
         if (fusedLocation != null) {
-            Log.d("RecordingFragment", "Current Fused Location retrieved: Latitude = "
-                    + fusedLocation.latitude + ", Longitude = " + fusedLocation.longitude);
+            //Log.d("RecordingFragment", "Current Fused Location retrieved: Latitude = "
+                  //  + fusedLocation.latitude + ", Longitude = " + fusedLocation.longitude);
 
             float currentElevation = sensorFusion.getElevation();
-            Log.d("RecordingFragment", "Current Elevation retrieved: " + currentElevation);
+          //  Log.d("RecordingFragment", "Current Elevation retrieved: " + currentElevation);
 
             // Build the GNSS sample
             Traj.GNSS_Sample.Builder sampleBuilder = Traj.GNSS_Sample.newBuilder()
@@ -322,15 +323,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
             // Log the details of the sample being added
             Traj.GNSS_Sample gnssSample = sampleBuilder.build();
-            Log.d("RecordingFragment", "GNSS Sample built: " + gnssSample.toString());
+           // Log.d("RecordingFragment", "GNSS Sample built: " + gnssSample.toString());
 
             // Add the new GNSS_Sample to the gnss_data list
             trajectory.addGnssData(gnssSample);
-            Log.d("RecordingFragment", "GNSS Sample added to trajectory");
+          //  Log.d("RecordingFragment", "GNSS Sample added to trajectory");
             Toast.makeText(getContext(), "Location Tagged", Toast.LENGTH_SHORT).show();
 
         } else {
-            Log.e("RecordingFragment", "Current GNSS location is null. GNSS Sample not added.");
+          //  Log.e("RecordingFragment", "Current GNSS location is null. GNSS Sample not added.");
         }
     }
 
@@ -495,7 +496,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Fetch current light level from sensor fusion
         float currentLightLevel = sensorFusion.getSensorValueMap().get(SensorTypes.LIGHT)[0];
-        Log.d("RecordingFragment", "Current light level: " + currentLightLevel + " lux");
+        //Log.d("RecordingFragment", "Current light level: " + currentLightLevel + " lux");
 
         // Determine indoor/outdoor status based on light level and building bounds
         boolean currentlyOutdoor = currentLightLevel > INDOOR_OUTDOOR_THRESHOLD || !isUserInsideAnyBuilding;
@@ -503,8 +504,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         // Check for a change in the indoor/outdoor status
         if (wasPreviouslyOutdoor == null || wasPreviouslyOutdoor != currentlyOutdoor) {
             // If the status has changed, show a toast message
-            String environment = currentlyOutdoor ? "Outdoor" : "Indoor";
-            Toast.makeText(getContext(), environment, Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"), Toast.LENGTH_SHORT).show();
 
             // Update the previous state
             wasPreviouslyOutdoor = currentlyOutdoor;
@@ -512,7 +512,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Update the global isOutdoor variable based on the current status
         isOutdoor = currentlyOutdoor;
-        Log.d("RecordingFragment", "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"));
+       // Log.d("RecordingFragment", "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"));
     }
 
 
@@ -831,7 +831,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
     /**
      Method to send the json fingerprint to the server and receive the latlong resposne
-     Also checks if the wifi list is empty or the server response is null and notifies the user that there is no wifi coverage @author Michalis Voudaskas
+     Also checks if the wifi list is empty or the server response is null and notifies the user that there is no wifi coverage
+     @author Michalis Voudaskas
      */
 
     private void fetchWifiLocationFromServer() {
@@ -843,7 +844,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 getActivity().runOnUiThread(() -> {
                     // Check if locationResponse is null, which indicates no WiFi coverage
                     if (locationResponse == null || sensorFusion.getWifiList() == null) {
-                        Log.e("RecordingFragment", "No Wi-Fi coverage detected.");
+                       // Log.e("RecordingFragment", "No Wi-Fi coverage detected.");
                         //Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
 
                         // Trigger blinking animation
@@ -854,7 +855,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     // Stop blinking animation if valid WiFi location is received
                     stopBlinkingAnimation();
 
-                    Log.d("RecordingFragment", "Received Wi-Fi location.");
+                  //  Log.d("RecordingFragment", "Received Wi-Fi location.");
                     wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
 
                     // Update the list of recent locations
@@ -862,7 +863,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     updateLocationMarkers();
                 });
             } catch (Exception e) {
-                Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
+               // Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
                 getActivity().runOnUiThread(() -> {
                     // Check if the fragment's view is still valid
                     if (getView() == null) {
