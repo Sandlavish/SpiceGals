@@ -661,7 +661,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         //this.timeRemaining = getView().findViewById(R.id.timeRemainingBar);
 
         // Display a blinking red dot to show recording is in progress
-        blinkingRecording();
 
         // Check if there is manually set time limit:
         if(this.settings.getBoolean("split_trajectory", false)) {
@@ -715,6 +714,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     Navigation.findNavController(view).navigate(action);
                 }
             }.start();
+            blinkingRecording();
         }
         else {
             // No time limit - use a repeating task to refresh UI.
@@ -869,27 +869,36 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 });
             } catch (Exception e) {
                 Log.e("RecordingFragment", "Exception while fetching location: " + e.getMessage(), e);
-                getActivity().runOnUiThread(this::startBlinkingAnimation); // Start animation in case of exception
+                getActivity().runOnUiThread(() -> {
+                    // Check if the fragment's view is still valid
+                    if (getView() == null) {
+                        return; // Fragment view is no longer valid, exit early
+                    }
+                    startBlinkingAnimation(); // Ensure this method also checks getView() is not null
+                });
             }
         });
     }
 
     private void startBlinkingAnimation() {
+        if (getView() == null) return;
         // Assuming there's a UI element like a TextView or ImageView to blink
         View uiElement = getView().findViewById(R.id.no_wiifi_id);
+        if (uiElement != null) {
+            // Make the UI element visible
+            uiElement.setVisibility(View.VISIBLE);
 
-        // Make the UI element visible
-        uiElement.setVisibility(View.VISIBLE);
-
-        // Set up the blinking animation
-        ObjectAnimator animator = ObjectAnimator.ofFloat(uiElement, "alpha", 0f, 1f);
-        animator.setDuration(800); // Duration of one blink
-        animator.setRepeatCount(ValueAnimator.INFINITE);
-        animator.setRepeatMode(ValueAnimator.REVERSE);
-        animator.start();
+            // Set up the blinking animation
+            ObjectAnimator animator = ObjectAnimator.ofFloat(uiElement, "alpha", 0f, 1f);
+            animator.setDuration(800); // Duration of one blink
+            animator.setRepeatCount(ValueAnimator.INFINITE);
+            animator.setRepeatMode(ValueAnimator.REVERSE);
+            animator.start();
+        }
     }
 
     private void stopBlinkingAnimation() {
+        if (getView() == null) return;
         View rootView = getView();
         if (rootView != null) {
             View uiElement = rootView.findViewById(R.id.no_wiifi_id);
