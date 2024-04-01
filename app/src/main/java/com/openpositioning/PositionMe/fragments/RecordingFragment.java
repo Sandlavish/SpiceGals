@@ -580,10 +580,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private int getMapTypeFromIndex(int index) {
         switch (index) {
-            case 1: return GoogleMap.MAP_TYPE_NORMAL;
-            case 2: return GoogleMap.MAP_TYPE_SATELLITE;
-            case 3: return GoogleMap.MAP_TYPE_TERRAIN;
-            case 4: return GoogleMap.MAP_TYPE_HYBRID;
+            case 0: return GoogleMap.MAP_TYPE_NORMAL;
+            case 1: return GoogleMap.MAP_TYPE_SATELLITE;
+            case 2: return GoogleMap.MAP_TYPE_TERRAIN;
+            case 3: return GoogleMap.MAP_TYPE_HYBRID;
             default: return GlobalVariables.getMapType();
         }
     }
@@ -661,41 +661,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         this.distance = 0f;
         this.previousPosX = 0f;
         this.previousPosY = 0f;
-
-        // Stop button to save trajectory and move to corrections
-        this.stopButton = getView().findViewById(R.id.stopButton);
-        this.stopButton.setOnClickListener(new View.OnClickListener() {
-            /**
-             * {@inheritDoc}
-             * OnClick listener for button to go to next fragment.
-             * When button clicked the PDR recording is stopped and the {@link CorrectionFragment} is loaded.
-             */
-            @Override
-            public void onClick(View view) {
-                if(autoStop != null) autoStop.cancel();
-                sensorFusion.stopRecording();
-                NavDirections action = RecordingFragmentDirections.actionRecordingFragmentToCorrectionFragment();
-                Navigation.findNavController(view).navigate(action);
-            }
-        });
-
-        // Cancel button to discard trajectory and return to Home
-        this.cancelButton = getView().findViewById(R.id.cancelButton);
-        this.cancelButton.setOnClickListener(new View.OnClickListener() {
-            /**
-             * {@inheritDoc}
-             * OnClick listener for button to go to home fragment.
-             * When button clicked the PDR recording is stopped and the {@link HomeFragment} is loaded.
-             * The trajectory is not saved.
-             */
-            @Override
-            public void onClick(View view) {
-                sensorFusion.stopRecording();
-                NavDirections action = RecordingFragmentDirections.actionRecordingFragmentToHomeFragment();
-                Navigation.findNavController(view).navigate(action);
-                if(autoStop != null) autoStop.cancel();
-            }
-        });
 
         // Display the progress of the recording when a max record length is set
         //this.timeRemaining = getView().findViewById(R.id.timeRemainingBar);

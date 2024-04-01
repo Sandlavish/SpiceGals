@@ -114,7 +114,6 @@ public class StartLocationFragment extends Fragment {
                         switch (position) {
                             case 0:
                                 type = GoogleMap.MAP_TYPE_NORMAL;
-
                                 break;
                             case 1:
                                 type = GoogleMap.MAP_TYPE_SATELLITE;

@@ -288,13 +288,14 @@
                     android:textSize="10sp" />
             </LinearLayout>
         </LinearLayout>
+
         <Spinner
             android:id="@+id/floorSelectionSpinner"
             android:layout_width="86dp"
             android:layout_height="37dp"
             android:layout_marginStart="12dp"
             android:background="@drawable/spinnerbutton"
-            android:backgroundTint="#68D81E1E"
+            android:backgroundTint="#B2D81E1E"
             android:dropDownWidth="match_parent"
             android:entries="@array/map_types"
             android:padding="8dp"
@@ -305,13 +306,14 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.224" />
+
         <Spinner
             android:id="@+id/mapTypeSpinner"
             android:layout_width="86dp"
             android:layout_height="37dp"
             android:layout_marginStart="12dp"
             android:background="@drawable/spinnerbutton"
-            android:backgroundTint="#68D81E1E"
+            android:backgroundTint="#B3D81E1E"
             android:dropDownWidth="match_parent"
             android:entries="@array/map_types"
             android:padding="8dp"
@@ -323,34 +325,34 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.152" />
 
-        <Button
-            android:id="@+id/cancelButton"
-            android:layout_width="125dp"
-            android:layout_height="60dp"
-            android:backgroundTint="@color/black"
-            android:text="Cancel"
-            app:cornerRadius="50dp"
-            app:icon="@drawable/ic_baseline_cancel_24"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.947"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.976" />
-        <Button
-            android:id="@+id/stopButton"
-            android:layout_width="124dp"
-            android:layout_height="59dp"
-            android:backgroundTint="@color/black"
-            android:text="Stop"
-            app:cornerRadius="50dp"
-            app:icon="@drawable/ic_baseline_stop_24"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.947"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.874" />
+<!--        <Button-->
+<!--            android:id="@+id/cancelButton"-->
+<!--            android:layout_width="125dp"-->
+<!--            android:layout_height="60dp"-->
+<!--            android:backgroundTint="@color/black"-->
+<!--            android:text="Cancel"-->
+<!--            app:cornerRadius="50dp"-->
+<!--            app:icon="@drawable/ic_baseline_cancel_24"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            app:layout_constraintHorizontal_bias="0.947"-->
+<!--            app:layout_constraintStart_toStartOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="parent"-->
+<!--            app:layout_constraintVertical_bias="0.976" />-->
+<!--        <Button-->
+<!--            android:id="@+id/stopButton"-->
+<!--            android:layout_width="124dp"-->
+<!--            android:layout_height="59dp"-->
+<!--            android:backgroundTint="@color/black"-->
+<!--            android:text="Stop"-->
+<!--            app:cornerRadius="50dp"-->
+<!--            app:icon="@drawable/ic_baseline_stop_24"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            app:layout_constraintHorizontal_bias="0.947"-->
+<!--            app:layout_constraintStart_toStartOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="parent"-->
+<!--            app:layout_constraintVertical_bias="0.874" />-->
 
         <Button
             android:id="@+id/button_add_tag"
@@ -369,23 +371,22 @@
 
         <Button
             android:id="@+id/btnToggleMarkers"
-            android:layout_width="123dp"
-            android:layout_height="64dp"
+            android:layout_width="171dp"
+            android:layout_height="52dp"
             android:layout_gravity="center_horizontal"
             android:layout_margin="16dp"
             android:backgroundTint="@color/black"
             android:text="Markers"
-            android:textSize="10sp"
+            android:textSize="15sp"
             app:cornerRadius="50dp"
             app:icon="@drawable/ic_launcher_simple_foreground"
             app:iconPadding="-10dp"
             app:iconSize="48dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.785" />
+            app:layout_constraintVertical_bias="0.976" />
 
         <FrameLayout
             android:id="@+id/frameLayout"

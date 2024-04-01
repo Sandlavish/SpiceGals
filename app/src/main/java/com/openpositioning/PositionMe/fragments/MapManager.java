@@ -12,7 +12,6 @@ public class MapManager implements OnMapReadyCallback {
     private GoogleMap mMap;
     private Fragment fragment;
     // Overlay references
-    private GroundOverlay groundflooroverlay, firstflooroverlay, secondflooroverlay, thirdflooroverlay;
 
     public MapManager(Fragment fragment) {
         this.fragment = fragment;
