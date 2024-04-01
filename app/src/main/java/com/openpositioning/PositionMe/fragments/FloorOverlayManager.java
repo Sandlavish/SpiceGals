@@ -11,13 +11,17 @@ import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 
 public class FloorOverlayManager {
+    private boolean manualSelectionActive = false;
     public static boolean groundFloorVisible;
+
+    public static boolean librarygroundfloorvisible;
     public static boolean firstFloorVisible;
+    public static boolean libraryfirstfloorvisible;
     public static boolean secondFloorVisible;
+    public static boolean librarysecondfloorvisible;
     public static boolean thirdFloorVisible;
-
+    public static boolean librarythirdfloorvisible;
     public static boolean isUserNearGroundFloor;
-
     public static boolean isuserNearGroundFloorLibrary;
 
     private GoogleMap mMap;
@@ -63,42 +67,37 @@ public class FloorOverlayManager {
         this.sensorFusion = sensorFusion;
         checkAndUpdateFloorOverlay();
     }
-    private void resetOverlayVisibilityFlags() {
-        // Reset all visibility flags to false
-        groundFloorVisible = false;
-        firstFloorVisible = false;
-        secondFloorVisible = false;
-        thirdFloorVisible = false;
-    }
 
     public void setUserSelectedFloor(Floor floor) {
         this.userSelectedFloor = floor;
-        // Call a method to update the floor overlays based on this selection
+        this.manualSelectionActive = true; // Indicate manual selection is active
         updateFloorOverlaysBasedOnUserSelection();
     }
 
-    private void updateFloorOverlaysBasedOnUserSelection() {
-        resetOverlayVisibilityFlags();
+    public void updateFloorOverlaysBasedOnUserSelection() {
+        // Hide all overlays initially
+        setFloorVisibility(false, false, false, false);
 
         if (userSelectedFloor != null) {
             switch (userSelectedFloor) {
                 case GROUND:
-                    groundFloorVisible = true;
+                    if (groundflooroverlay != null) groundflooroverlay.setVisible(true);
+                    if (librarygroundflooroverlay!=null) librarygroundflooroverlay.setVisible(true);
                     break;
                 case FIRST:
-                    firstFloorVisible = true;
+                    if (firstflooroverlay != null) firstflooroverlay.setVisible(true);
+                    if (libraryfirstflooroverlay!=null) libraryfirstflooroverlay.setVisible(true);
                     break;
                 case SECOND:
-                    secondFloorVisible = true;
+                    if (secondflooroverlay != null) secondflooroverlay.setVisible(true);
+                    if (librarysecondflooroverlay!=null) librarysecondflooroverlay.setVisible(true);
                     break;
                 case THIRD:
-                    thirdFloorVisible = true;
+                    if (thirdflooroverlay != null) thirdflooroverlay.setVisible(true);
+                    if (librarythirdflooroverlay!=null) librarythirdflooroverlay.setVisible(true);
                     break;
             }
-            // Update overlays based on the current visibility flags
-            setFloorVisibility(groundFloorVisible, firstFloorVisible, secondFloorVisible, thirdFloorVisible);
         }
-        // Otherwise, maintain current behavior or add additional logic as needed
     }
 
     public void updateFloorOverlays(float elevation) {
@@ -107,6 +106,7 @@ public class FloorOverlayManager {
 
         // Update overlays based on the current visibility flags
         setFloorVisibility(groundFloorVisible, firstFloorVisible, secondFloorVisible, thirdFloorVisible);
+        setFloorVisibility(librarygroundfloorvisible, libraryfirstfloorvisible, librarysecondfloorvisible, librarythirdfloorvisible);
 
         // Update overlays only if the floor has changed
         if (targetFloor != currentFloor) {
@@ -130,23 +130,29 @@ public class FloorOverlayManager {
 
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
-        float currentElevation = sensorFusion.getElevation();
-        updateFloorOverlays(currentElevation);
+        if (!manualSelectionActive) { // Only update based on elevation if manual selection is not active
+            float currentElevation = sensorFusion.getElevation();
+            updateFloorOverlays(currentElevation);
+        }
     }
 
 
     // Helper method to determine the floor based on elevation
     private Floor determineFloorByElevation(float elevation) {
         if (elevation <= GROUND_FLOOR_MAX_ELEVATION) {
+            librarygroundfloorvisible=true;
             groundFloorVisible = true;
             return Floor.GROUND;
         } else if (elevation <= FIRST_FLOOR_MAX_ELEVATION) {
+            libraryfirstfloorvisible=true;
             firstFloorVisible = true;
             return Floor.FIRST;
         } else if (elevation <= SECOND_FLOOR_MAX_ELEVATION) {
+            librarysecondfloorvisible=true;
             secondFloorVisible = true;
             return Floor.SECOND;
         } else {
+            librarythirdfloorvisible=true;
             thirdFloorVisible = true;
             return Floor.THIRD;
         }
@@ -174,12 +180,17 @@ public class FloorOverlayManager {
     }
 
     // Method to adjust the visibility of overlays
-    public void setFloorVisibility(boolean ground, boolean first,
-                                   boolean second, boolean third) {
-        if (groundflooroverlay != null) groundflooroverlay.setVisible(ground);
-        if (firstflooroverlay != null) firstflooroverlay.setVisible(first);
-        if (secondflooroverlay != null) secondflooroverlay.setVisible(second);
-        if (thirdflooroverlay != null) thirdflooroverlay.setVisible(third);
+    public void setFloorVisibility(boolean ground, boolean first, boolean second, boolean third) {
+        if (isUserNearGroundFloor || isuserNearGroundFloorLibrary) {
+            if (groundflooroverlay != null) groundflooroverlay.setVisible(ground);
+            if (firstflooroverlay != null) firstflooroverlay.setVisible(first);
+            if (secondflooroverlay != null) secondflooroverlay.setVisible(second);
+            if (thirdflooroverlay != null) thirdflooroverlay.setVisible(third);
+            if (librarygroundflooroverlay != null) librarygroundflooroverlay.setVisible(ground);
+            if (libraryfirstflooroverlay != null) libraryfirstflooroverlay.setVisible(first);
+            if (librarysecondflooroverlay != null) librarysecondflooroverlay.setVisible(second);
+            if (librarythirdflooroverlay != null) librarythirdflooroverlay.setVisible(third);
+        }
     }
 
     private void defineOverlayBounds() {
@@ -200,19 +211,6 @@ public class FloorOverlayManager {
                 .image(BitmapDescriptorFactory.fromResource(resourceId))
                 .positionFromBounds(bounds)
                 .transparency(0.5f)); // Adjust transparency as needed
-    }
-
-    public void updateFloorOverlay() {
-        if (groundflooroverlay != null && firstflooroverlay != null && secondflooroverlay!=null && thirdflooroverlay!=null) {
-            groundflooroverlay.setVisible(userIsOnGroundFloor);
-            firstflooroverlay.setVisible(userIsOnFirstFloor);
-            secondflooroverlay.setVisible(userIsOnSecondFloor);
-            thirdflooroverlay.setVisible(userIsOnThirdFloor);
-            librarygroundflooroverlay.setVisible(userIsOnGroundFloor);
-            libraryfirstflooroverlay.setVisible(userIsOnFirstFloor);
-            librarysecondflooroverlay.setVisible(userIsOnSecondFloor);
-            librarythirdflooroverlay.setVisible(userIsOnThirdFloor);
-        }
     }
 
 

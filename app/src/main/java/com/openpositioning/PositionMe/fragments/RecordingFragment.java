@@ -216,8 +216,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         int measurementSize = 2; // For [lat, lon] measurements from GNSS
         ekf = new ExtendedKalmanFilter(stateSize, measurementSize);
 
+        if (gnssLocation == null) {
+            return;
+        }
+        double latitude = gnssLocation[0];
+        double longitude = gnssLocation[1];
         // Initial state: [lat, lon, v_n, v_e]
-        double[] initialState = {0.0, 0.0, 0.0, 0.0}; // Initialize with your first GNSS reading or a known starting point
+        double[] initialState = {latitude, longitude, 0.0, 0.0}; // Initialize with your first GNSS reading or a known starting point
 
         // Initial covariance matrix (P), small values for the initial state's certainty
         double[][] initialCovariance = new double[stateSize][stateSize];
@@ -406,7 +411,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return bitmap;
     }
 
-    private void processLocationWithKalmanFilter(float[] gnssLocation) {
+    private LatLng processLocationWithKalmanFilter(float[] gnssLocation) {
         double latitude = gnssLocation[0];
         double longitude = gnssLocation[1];
         long timeStamp = System.currentTimeMillis(); // Current time in milliseconds
@@ -438,12 +443,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Use the filtered coordinates to update the map
         filteredLocation = new LatLng(kalmanFilter.get_lat(), kalmanFilter.get_lng());
-        filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
+        LatLng filteredLocation_ekf = new LatLng(filteredLat, filteredLon);
 
         // Update the EKF with the new measurement
         ekf.update(z, H, R);
 
         lastUpdateTime = System.currentTimeMillis();
+        return filteredLocation_ekf;
     }
     private void predictUserLocation() {
         // Calculate the time step (dt) in seconds
@@ -526,7 +532,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 gnssLocation = sensorFusion.getGNSSLatitude(false); // False indicates we're not fetching the initial start location
 
                 // Process GNSS data through the Kalman filter
-                processLocationWithKalmanFilter(gnssLocation);
+                filteredLocation_ekf = processLocationWithKalmanFilter(gnssLocation);
                 updateMap(filteredLocation, filteredLocation_ekf); // You might need to adjust this method to suit your needs
 
                 handleLocationUpdates();
@@ -535,13 +541,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 gnssUpdateHandler.postDelayed(this, 500); // Adjust the delay as needed
             }
         };
-    }
-
-    private void updateFloorButtonStates(boolean isUserNearAnyFloor, Button... buttons) {
-        for (Button button : buttons) {
-            button.setVisibility(isUserNearAnyFloor ? View.VISIBLE : View.GONE);
-            button.setEnabled(isUserNearAnyFloor);
-        }
     }
 
     private void setupMapTypeSpinner(View view) {
@@ -618,6 +617,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                         break;
                 }
                 floorOverlayManager.setUserSelectedFloor(selectedFloor);
+                floorOverlayManager.updateFloorOverlaysBasedOnUserSelection();
             }
 
             @Override
@@ -1215,6 +1215,21 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         for (Marker marker : pdrMarkers) {
             marker.setVisible(arePDRMarkersVisible);
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        // Remove the scheduled Runnable tasks
+        if (refreshDataHandler != null) {
+            refreshDataHandler.removeCallbacks(refreshDataTask);
+        }
+        if (gnssUpdateHandler != null) {
+            gnssUpdateHandler.removeCallbacks(gnssUpdateTask);
+        }
+        if (lightLevelHandler != null && lightLevelRunnable != null) {
+            lightLevelHandler.removeCallbacks(lightLevelRunnable);
         }
     }
 
