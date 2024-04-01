@@ -199,6 +199,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         this.wifiFPManager = WifiFPManager.getInstance();
         serverCommunications = new ServerCommunications(context);
 
+        // Initialize trajectory
+        trajectory = Traj.Trajectory.newBuilder();
+
 
         // Initialize the Extended Kalman Filter
         int stateSize = 4; // For [lat, lon, v_n, v_e]
@@ -294,6 +297,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Add the new GNSS_Sample to the gnss_data list
             trajectory.addGnssData(gnssSample);
             Log.d("RecordingFragment", "GNSS Sample added to trajectory");
+            Toast.makeText(getContext(), "Location Tagged", Toast.LENGTH_SHORT).show();
 
         } else {
             Log.e("RecordingFragment", "Current GNSS location is null. GNSS Sample not added.");
