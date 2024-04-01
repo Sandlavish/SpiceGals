@@ -639,6 +639,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         public void run() {
             // Get new position
             float[] pdrValues = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+            float[] gnssValues = sensorFusion.getGNSSLatitude(false);
+
+            LatLng PDRFilter = convertMetersToLatLng(pdrValues, PDRPOS);
+            LatLng GNSSFilter = new LatLng(gnssValues[0], gnssValues[1]);
+
             positionX.setText(getString(R.string.x, String.format("%.1f", pdrValues[0])));
             positionY.setText(getString(R.string.y, String.format("%.1f", pdrValues[1])));
             // Calculate distance travelled
@@ -647,7 +652,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
             fetchLocation();
-            applyFilter();
+
+//            if (isOutdoor) {
+//                updateParticleFilterPositions(PDRFilter, GNSSFilter, GNSSFilter);
+//            }
+//            else {
+//                updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+//            }
+
+            updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
             // Display elevation and elevator icon when necessary
@@ -909,28 +922,28 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             double longitude = startloc[1];
             // Create a new LatLng object for the GNSS location
             LatLng filterstartloc = new LatLng(latitude, longitude);
-            particleFilter = new ParticleFilter(100, filterstartloc);
+            particleFilter = new ParticleFilter(50, filterstartloc);
         }
     }
 
-    private void applyFilter(){
-        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
-        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+//    private void applyParticleFilter(){
+//        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
+//        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
+//
+//        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
+//        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
+//
+//        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+//    }
 
-        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
-        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
-
-        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
-    }
-
-    private void updateParticleFilterPositions(LatLng gnssPosition, LatLng pdrPosition, LatLng wifiPosition) {
+    private void updateParticleFilterPositions(LatLng predictPos, LatLng UpdatePos1, LatLng UpdatePos2) {
         if (particleFilter != null) {
             // Assuming a small measurement noise for demonstration. Adjust based on actual data quality.
             float measurementNoise = 5.0f; // Meters, adjust as needed
 
             // Update particle filter with GNSS, PDR, and WiFi positions
             // You can adjust the measurement noise for each type of update depending on their reliability
-            particleFilter.updateFilter(pdrPosition, gnssPosition, wifiPosition, measurementNoise);
+            particleFilter.updateFilter(predictPos, UpdatePos1, UpdatePos2, measurementNoise);
 
             // Optionally, get and use the fused position
             LatLng fusedPosition = particleFilter.getFusedPosition();

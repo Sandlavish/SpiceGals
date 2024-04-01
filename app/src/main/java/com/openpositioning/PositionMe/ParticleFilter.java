@@ -39,7 +39,7 @@ public class ParticleFilter {
     }
 
     private void initializeParticles(LatLng initialPosition) {
-        double spreadRadius = 20; // Meters, adjust based on the scale of your environment
+        double spreadRadius = 10; // Meters, adjust based on the scale of your environment
         for (int i = 0; i < numberOfParticles; i++) {
             double offsetLat = (random.nextDouble() - 0.5) * spreadRadius / 111111; // Convert meters to degrees latitude
             double offsetLng = (random.nextDouble() - 0.5) * spreadRadius / (111111 * Math.cos(Math.toRadians(initialPosition.latitude))); // Convert meters to degrees longitude
@@ -48,15 +48,13 @@ public class ParticleFilter {
     }
 
     // Update the filter based on new PDR, GNSS, and WiFi positions
-    public void updateFilter(LatLng pdrPosition, LatLng gnssPosition, LatLng wifiPosition, double measurementNoise) {
+    public void updateFilter(LatLng predictPos, LatLng updPos1, LatLng updPos2, double measurementNoise) {
         // Predict movement based on the most reliable
-//        predict(pdrPosition);
-        predict(gnssPosition);
+        predict(predictPos);
 
         // Update based on the rest
-//        update(gnssPosition, measurementNoise);
-        update(pdrPosition,measurementNoise);
-        update(wifiPosition, measurementNoise);
+        update(updPos1,measurementNoise);
+        update(updPos2, measurementNoise);
 
         // Resample particles to focus on more probable states
         resample();
