@@ -755,7 +755,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             distanceTravelled.setText(getString(R.string.meter, String.format("%.2f", distance)));
             floorOverlayManager.checkAndUpdateFloorOverlay();
             updatePDRPosition();
-            fetchLocation();
+            fetchWifiLocationFromServer();
 
 //            if (isOutdoor) {
 //                updateParticleFilterPositions(PDRFilter, GNSSFilter, GNSSFilter);
@@ -808,7 +808,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      Also checks if the wifi list is empty and notifies the user that there is no wifi coverage @author Michalis Voudaskas
      */
 
-    private void fetchLocation() {
+    private void fetchWifiLocationFromServer() {
         Executors.newSingleThreadExecutor().submit(() -> {
             try {
                 String wifiFingerprintJson = wifiFPManager.createWifiFingerprintJson();
