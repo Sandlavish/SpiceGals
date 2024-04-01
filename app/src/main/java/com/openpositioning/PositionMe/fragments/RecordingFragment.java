@@ -236,6 +236,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         initializeMap();
         // Set up the "Add Tag" button
         Button addTagButton = rootView.findViewById(R.id.button_add_tag);
+
         addTagButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -590,7 +591,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                         selectedFloor = FloorOverlayManager.Floor.THIRD;
                         break;
                 }
-                //floorOverlayManager.updateFloorOverlays(FloorOverlayManager.Floor.selectedFloor);
+                floorOverlayManager.setUserSelectedFloor(selectedFloor);
             }
 
             @Override

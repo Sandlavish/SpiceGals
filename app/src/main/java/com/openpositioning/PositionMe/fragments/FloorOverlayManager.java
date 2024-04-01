@@ -71,8 +71,13 @@ public class FloorOverlayManager {
         thirdFloorVisible = false;
     }
 
-    public void updateFloorOverlays(float elevation) {
+    public void setUserSelectedFloor(Floor floor) {
+        this.userSelectedFloor = floor;
+        // Call a method to update the floor overlays based on this selection
+        updateFloorOverlaysBasedOnUserSelection();
+    }
 
+    private void updateFloorOverlaysBasedOnUserSelection() {
         resetOverlayVisibilityFlags();
 
         if (userSelectedFloor != null) {
@@ -93,7 +98,10 @@ public class FloorOverlayManager {
             // Update overlays based on the current visibility flags
             setFloorVisibility(groundFloorVisible, firstFloorVisible, secondFloorVisible, thirdFloorVisible);
         }
+        // Otherwise, maintain current behavior or add additional logic as needed
+    }
 
+    public void updateFloorOverlays(float elevation) {
         // Determine the floor based on elevation
         Floor targetFloor = determineFloorByElevation(elevation);
 
@@ -119,9 +127,6 @@ public class FloorOverlayManager {
             currentFloor = targetFloor;
         }
     }
-
-
-
 
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
