@@ -145,6 +145,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private Marker ekfmarker;
+    
 
     private ExtendedKalmanFilter ekf;
     private Spinner floorSelectionSpinner;
@@ -774,25 +775,18 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 }
             }
 
-            if (fusedLocation != null && WifiFilter != null) {
+            if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
                 double errorFusedWifi = calculateDistanceBetween(fusedLocation, WifiFilter);
-                Log.d("LocationError", "Error between Fused and WiFi Location: " + errorFusedWifi + " meters");
-            } else {
-                Log.d("LocationError", "Fused or WiFi Location is null, cannot calculate error.");
-            }
+                TextView errorWifi = getView().findViewById(R.id.tvErrorFusedWifi);
+                errorWifi.setText(String.format("Fused-WiFi Error: %.2f m", errorFusedWifi));
 
-            if (fusedLocation != null && GNSSFilter != null) {
                 double errorFusedGnss = calculateDistanceBetween(fusedLocation, GNSSFilter);
-                Log.d("LocationError", "Error between Fused and GNSS Location: " + errorFusedGnss + " meters");
-            } else {
-                Log.d("LocationError", "Fused or GNSS Location is null, cannot calculate error.");
-            }
+                TextView errorGnss = getView().findViewById(R.id.tvErrorFusedGnss);
+                errorGnss.setText(String.format("Fused-GNSS Error: %.2f m", errorFusedGnss));
 
-            if (fusedLocation != null && PDRFilter != null) {
                 double errorFusedPdr = calculateDistanceBetween(fusedLocation, PDRFilter);
-                Log.d("LocationError", "Error between Fused and PDR Location: " + errorFusedPdr + " meters");
-            } else {
-                Log.d("LocationError", "Fused or PDR Location is null, cannot calculate error.");
+                TextView errorPdr = getView().findViewById(R.id.tvErrorFusedPdr);
+                errorPdr.setText(String.format("Fused-PDR Error: %.2f m", errorFusedPdr));
             }
 
 //            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
