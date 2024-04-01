@@ -303,12 +303,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
         Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
 
-        // Get the current location
-        float [] currentLocation = sensorFusion.getGNSSLatitude(false); // Replace with fused location if necessary
 
-        if (currentLocation != null) {
-            Log.d("RecordingFragment", "Current GNSS location retrieved: Latitude = "
-                    + currentLocation[0] + ", Longitude = " + currentLocation[1]);
+        if (fusedLocation != null) {
+            Log.d("RecordingFragment", "Current Fused Location retrieved: Latitude = "
+                    + fusedLocation.latitude + ", Longitude = " + fusedLocation.longitude);
 
             float currentElevation = sensorFusion.getElevation();
             Log.d("RecordingFragment", "Current Elevation retrieved: " + currentElevation);
@@ -316,8 +314,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Build the GNSS sample
             Traj.GNSS_Sample.Builder sampleBuilder = Traj.GNSS_Sample.newBuilder()
                     .setAltitude(currentElevation)
-                    .setLatitude(currentLocation[0])
-                    .setLongitude(currentLocation[1])
+                    .setLatitude((float) fusedLocation.latitude)
+                    .setLongitude((float) fusedLocation.longitude)
                     .setProvider("fusion")
                     .setRelativeTimestamp(relativeTimestamp);
 
@@ -490,12 +488,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void updateIndoorOutdoorStatus() {
-        // Fetch the latest GNSS location from sensor fusion
-        float[] gnssLocation = sensorFusion.getGNSSLatitude(false);
-        LatLng currentLocation = new LatLng(gnssLocation[0], gnssLocation[1]); //change to fused
 
         // Check if user is within any building bounds
-        boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(currentLocation) || floorOverlayManager.buildingBoundsLibrary.contains(currentLocation);
+        boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(fusedLocation) || floorOverlayManager.buildingBoundsLibrary.contains(fusedLocation);
 
         // Fetch current light level from sensor fusion
         float currentLightLevel = sensorFusion.getSensorValueMap().get(SensorTypes.LIGHT)[0];
@@ -733,13 +728,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         rcntr.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Get Current Location
-                float[] latestgnss = sensorFusion.getGNSSLatitude(false); //use fused
-                LatLng gnssLocationLatlng = new LatLng(latestgnss[0], latestgnss[1]);
+
 
                 // Center the map on the current location of the user
                 if (mMap != null) {
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(gnssLocationLatlng, 19f));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(fusedLocation, 19f));
                 }
             }
         });
