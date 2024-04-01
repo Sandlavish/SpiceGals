@@ -763,6 +763,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
             LatLng PDRFilter = convertMetersToLatLng(pdrValues, PDRPOS);
             LatLng GNSSFilter = new LatLng(gnssValues[0], gnssValues[1]);
+            LatLng WifiFilter = wifiLocation;
 
             positionX.setText(getString(R.string.x, String.format("%.1f", pdrValues[0])));
             positionY.setText(getString(R.string.y, String.format("%.1f", pdrValues[1])));
@@ -773,15 +774,24 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             updatePDRPosition();
             fetchWifiLocationFromServer();
 
-//            if (isOutdoor) {
-//                updateParticleFilterPositions(PDRFilter, GNSSFilter, GNSSFilter);
-//            }
-//            else {
-//                updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
-//            }
+            LatLng fusedPosition;
 
-            LatLng fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+            if (WifiFilter == null) {
+                fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+            }
+            else {
+                if (isOutdoor) {
+                    fusedPosition = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
+                }
+                else {
+                    fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
+                }
+            }
+
+//            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
             updateMapWithFusedPosition(fusedPosition);
+            updatePDRPath(fusedPosition);
+
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
@@ -810,7 +820,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             LatLng pdrLatLng = convertMetersToLatLng(pdrCoordinates, PDRPOS);
             //updatePDRMarker(pdrLatLng);
             updatePDRLocations(pdrLatLng);
-            updatePDRPath(pdrLatLng); // If you also want to draw the path
+//            updatePDRPath(pdrLatLng); // If you also want to draw the path
 
             floorOverlayManager.isUserNearGroundFloor = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerNucleus.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerNucleus.latitude)
                     && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerNucleus.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerNucleus.longitude));
