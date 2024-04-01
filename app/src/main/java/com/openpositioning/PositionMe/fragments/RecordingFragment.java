@@ -564,11 +564,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         pdrProcessing = new PdrProcessing(getContext());
         //float currentElevation = sensorFusion.getElevation();
 
-        Button btnGroundFloor = view.findViewById(R.id.btnGroundFloor);
-        Button btnFirstFloor = view.findViewById(R.id.btnFirstFloor);
-        Button btnSecondFloor = view.findViewById(R.id.btnSecondFloor);
-        Button btnThirdFloor = view.findViewById(R.id.btnThirdFloor);
-
         Spinner floorSelectionSpinner = view.findViewById(R.id.floorSelectionSpinner);
 
         floorSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -603,10 +598,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Setup GNSS updates
         setupGnssUpdates();
-
-        // Setup visibility and enabled state based on user proximity
-        updateFloorButtonStates(FloorOverlayManager.isUserNearGroundFloor || FloorOverlayManager.isuserNearGroundFloorLibrary,
-                btnGroundFloor, btnFirstFloor, btnSecondFloor, btnThirdFloor);
 
         // Initialize the map type spinner
         setupMapTypeSpinner(view);
