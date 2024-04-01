@@ -776,15 +776,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
 
             if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
-                double errorFusedWifi = calculateDistanceBetween(fusedLocation, WifiFilter);
+                double errorFusedWifi = calculateDistanceBetweenLatLng(fusedLocation, WifiFilter);
                 TextView errorWifi = getView().findViewById(R.id.tvErrorFusedWifi);
                 errorWifi.setText(String.format("Fused-WiFi Error: %.2f m", errorFusedWifi));
 
-                double errorFusedGnss = calculateDistanceBetween(fusedLocation, GNSSFilter);
+                double errorFusedGnss = calculateDistanceBetweenLatLng(fusedLocation, GNSSFilter);
                 TextView errorGnss = getView().findViewById(R.id.tvErrorFusedGnss);
                 errorGnss.setText(String.format("Fused-GNSS Error: %.2f m", errorFusedGnss));
 
-                double errorFusedPdr = calculateDistanceBetween(fusedLocation, PDRFilter);
+                double errorFusedPdr = calculateDistanceBetweenLatLng(fusedLocation, PDRFilter);
                 TextView errorPdr = getView().findViewById(R.id.tvErrorFusedPdr);
                 errorPdr.setText(String.format("Fused-PDR Error: %.2f m", errorFusedPdr));
             }
@@ -909,7 +909,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
 
         LatLng averageLocation = getAverageLocation(recentWifiLocations);
-        double distanceToAverage = calculateDistanceBetween(averageLocation, newLocation);
+        double distanceToAverage = calculateDistanceBetweenLatLng(averageLocation, newLocation);
         return distanceToAverage > OUTLIER_THRESHOLD_METERS;
     }
 
@@ -949,7 +949,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
     // Distance between 2 latlongs
-    private double calculateDistanceBetween(LatLng pos1, LatLng pos2) {
+    private double calculateDistanceBetweenLatLng(LatLng pos1, LatLng pos2) {
         final int R = 6371; // Radius of the earth in kilometers
 
         double lat1 = pos1.latitude;
