@@ -77,6 +77,18 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.976" />
 
+        <ImageView
+            android:id="@+id/no_wiifi_id"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="344dp"
+            android:layout_marginTop="152dp"
+            android:visibility="gone"
+            android:src="@drawable/ic_baseline_no_wifi_24"
+
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <androidx.cardview.widget.CardView
             android:id="@+id/currentPositionCard"
             android:layout_width="276dp"
@@ -247,7 +259,6 @@
             android:id="@+id/button_add_tag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="588dp"
             android:backgroundTint="@color/black"
             android:onClick="onAddTagButtonClicked"
             android:text="Add Tag"
@@ -255,7 +266,9 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.958"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.139" />
 
         <Button
             android:id="@+id/btnToggleMarkers"
@@ -278,6 +291,7 @@
             app:layout_constraintVertical_bias="0.785" />
 
         <LinearLayout
+            android:id="@+id/linearLayout"
             android:layout_width="103dp"
             android:layout_height="70dp"
             android:layout_alignParentTop="true"

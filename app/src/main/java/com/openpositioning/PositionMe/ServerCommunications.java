@@ -442,19 +442,25 @@ public class ServerCommunications implements Observable {
             }
         }
     }
+
+    /**
+     * Sends a JSON string containing WiFi fingerprint data to a server and handles the response.
+     * If successful, it parses the response to extract and return location data.
+     * In case of errors, appropriate exceptions are thrown.
+     *
+     * @param jsonWifiFingerprint The JSON string of WiFi fingerprint data.
+     * @return LocationResponse object containing the latitude, longitude, and floor (if available).
+     * @throws IOException If there is a network or IO issue or an unexpected response code.
+     * @author Michalis Voudaskas
+     */
     public LocationResponse sendWifiFingerprintToServer(String jsonWifiFingerprint) throws IOException {
         Log.d("ServerCommunications", "JSON being sent: " + jsonWifiFingerprint);
+
         OkHttpClient client = new OkHttpClient();
-        // Define the URL of the API
         String apiUrl = "https://openpositioning.org/api/position/fine";
-
-        // Create a MediaType to specify the type of the request body
         MediaType JSON = MediaType.get("application/json; charset=utf-8");
-
-        // Create the request body with the JSON string
         RequestBody body = RequestBody.create(jsonWifiFingerprint, JSON);
 
-        // Build the HTTP request
         Request request = new Request.Builder()
                 .url(apiUrl)
                 .post(body)
@@ -462,13 +468,9 @@ public class ServerCommunications implements Observable {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        // Execute the request synchronously
         try (Response response = client.newCall(request).execute()) {
-            // Parse the response based on the status code
             if (response.isSuccessful()) {
-                // Parse the successful response to extract latitude and longitude
                 String responseData = response.body().string();
-                // Log the response data
                 Log.d("ServerCommunications", "Response received: " + responseData);
 
                 JSONObject jsonObj = new JSONObject(responseData);
@@ -476,25 +478,15 @@ public class ServerCommunications implements Observable {
                 double longitude = jsonObj.optDouble("lon", Double.NaN);
                 String floor = jsonObj.optString("floor", null); // Default to null if not present
                 return new LocationResponse(latitude, longitude, floor);
-            } else if (response.code() == 422) {
-                // Handle the validation error
-                String responseBody = response.body().string();
-                Log.e("Validation Error", responseBody);
-                // Additional error handling goes here
-                throw new IOException("Validation error with body: " + responseBody);
             } else {
-                // Handle other types of errors
-                Log.e("Response Code", response.code() + " " + response.body().string());
-                throw new IOException("Unexpected response code: " + response.code());
+                // Log error and return null to indicate no WiFi coverage
+                Log.e("ServerCommunications", "Error response received. No Wi-Fi coverage.");
+                return null;
             }
-        } catch (JSONException e) {
-            // Log JSON parsing error or handle it appropriately
-            Log.e("ServerCommunications", "JSON parsing error", e);
-            throw new IOException("JSON parsing error", e);
-        } catch (IOException e) {
-            // Log network or other IO errors and rethrow them
-            Log.e("ServerCommunications", "Network or IO error", e);
-            throw e;
+        } catch (Exception e) {
+            // Log error and return null to indicate no WiFi coverage
+            Log.e("ServerCommunications", "Error sending WiFi fingerprint", e);
+            return null;
         }
     }
 }
