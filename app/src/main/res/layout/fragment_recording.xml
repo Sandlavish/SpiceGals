@@ -441,7 +441,7 @@
             android:id="@+id/frameLayout"
             android:layout_width="50dp"
             android:layout_height="51dp"
-            android:background="@drawable/circular_white_background"
+            android:background="@drawable/circular_black_background"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.044"
