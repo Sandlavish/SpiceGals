@@ -708,7 +708,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 FloorOverlayManager.Floor selectedFloor;
-                switch (position) {
+                switch (position + 1) {
                     case 1:
                         floorOverlayManager.checkAndUpdateFloorOverlay();
                     case 2:
