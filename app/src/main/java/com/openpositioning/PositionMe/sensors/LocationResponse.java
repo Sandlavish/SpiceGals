@@ -9,10 +9,10 @@ package com.openpositioning.PositionMe.sensors;
 public class LocationResponse {
     private double latitude;
     private double longitude;
-    private String floor;
+    private int floor;
 
     // Constructors, getters, and setters
-    public LocationResponse(double latitude, double longitude, String floor) {
+    public LocationResponse(double latitude, double longitude, int floor) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.floor = floor;
@@ -26,7 +26,7 @@ public class LocationResponse {
         return longitude;
     }
 
-    public String getFloor() {
+    public int getFloor() {
         return floor;
     }
 }
