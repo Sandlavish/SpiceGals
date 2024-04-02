@@ -24,26 +24,33 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 /**
  * Performs map matching by locating the nearest point in a predefined dataset
- * based on the user's current GPS coordinates. The class reads a JSON file containing
- * location data, which includes latitude, longitude, and floor information, and parses
- * it into a list of {@link LocationResponse} objects.
+ * based on the user's current GPS coordinates. This class processes a JSON file
+ * containing location data, which includes latitude, longitude, and floor
+ * information, and parses it into a list of {@link LocationResponse} objects.
  *
- * The primary functionality is offered through the {@code findNearestLocation} method,
- * which computes the distance between the user's current location and each point in the
- * dataset using a Euclidean distance calculation as the distances are relatively short.
- * The nearest location is identified based on the smallest distance and matching floor number.
+ * The core functionality is provided by the {@code findNearestLocation} method,
+ * which calculates the distance between the user's current location and each
+ * point in the dataset using the Haversine formula. This method is known for
+ * better accuracy over spherical distances compared to planar models, making it
+ * well-suited for larger areas and outdoor environments. The nearest location is
+ * determined by the smallest distance and a matching floor number, which ensures
+ * relevance in a multi-story context.
  *
- * The {@code euclideanDistance} method provides a simple, planar distance calculation
- * between two geographical points, which is less accurate over long distances compared
- * to spherical models but is suitable for small areas such as indoor environments.
+ * The {@code distanceBetweenPoints} method takes advantage of the earth's curvature
+ * to calculate a more accurate distance between two geographical points than a
+ * simple Euclidean (planar) distance formula would provide. This is particularly
+ * useful when working with a larger scale where the curvature becomes significant.
  *
- * The parsed data from the JSON file is stored in a list of {@link LocationResponse} objects
- * that hold the latitude, longitude, and floor of each location. Upon construction, the
- * class logs the first location from the dataset for testing purposes. If no locations
- * are found, or if an error occurs during parsing, it will log the corresponding information.
+ * Data parsed from the JSON file is stored as a list of {@link LocationResponse}
+ * objects, each holding the latitude, longitude, and floor information for a
+ * location. When the class is instantiated, it logs the first location from the
+ * dataset as a means of initial validation. In cases where no locations are
+ * found, or an error occurs during parsing, appropriate log messages are
+ * generated to aid in troubleshooting.
  *
- * Usage of this class allows for straightforward integration of map matching features into
- * location-aware applications, particularly for indoor navigation systems.
+ * This class is designed to facilitate the integration of map matching into
+ * applications that require location-aware functionalities, with a particular
+ * emphasis on providing accurate indoor navigation and location services.
  *
  * @author Michalis Voudaskas
  */
