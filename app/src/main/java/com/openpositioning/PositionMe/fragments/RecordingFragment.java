@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
@@ -22,6 +23,7 @@ import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
@@ -32,6 +34,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -344,11 +348,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         long currentTimestamp = System.currentTimeMillis();
         long relativeTimestamp = currentTimestamp - sensorFusion.getAbsoluteStartTime();
 
-//        Log.d("RecordingFragment", "Current timestamp: " + currentTimestamp);
-//        Log.d("RecordingFragment", "Start timestamp: " + trajectory.getStartTimestamp());
-//        Log.d("RecordingFragment", "Relative timestamp calculated: " + relativeTimestamp);
-
-
         if (fusedLocation != null) {
             //Log.d("RecordingFragment", "Current Fused Location retrieved: Latitude = "
                   //  + fusedLocation.latitude + ", Longitude = " + fusedLocation.longitude);
@@ -403,8 +402,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
 
         floorOverlayManager = new FloorOverlayManager(mMap, mapManager, sensorFusion);
+        // Setup overlays after map is ready
         floorOverlayManager.setupGroundOverlays();
-        // After setting up overlays, check and update them based on the current elevation
+        // Initially check and update overlays
         floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
@@ -438,6 +438,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         boolean inBuilding = floorOverlayManager.buildingBounds.contains(gnssLatLng) || floorOverlayManager.buildingBoundsLibrary.contains(gnssLatLng);
         floorSelectionSpinner.setVisibility(inBuilding ? View.VISIBLE : View.GONE);
+
+        floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
     private Bitmap getBitmapFromVector(Context context, int vectorResId) {
@@ -500,7 +502,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         double[][] F = {{1, 0, dt, 0}, {0, 1, 0, dt}, {0, 0, 1, 0}, {0, 0, 0, 1}};
 
         // Process noise covariance matrix (Q), adjust based on expected process noise
-        double[][] Q = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}; // Example values, adjust as needed
+        double[][] Q = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
 
         // Predict the next state
         ekf.predict(F, Q);
@@ -616,7 +618,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 // Construct the H and R matrices based on your system model and measurement noise
                 double[][] H = {{1, 0, 0, 0}, {0, 1, 0, 0}};
                 double[][] R = {{10, 0}, {0, 10}};
-                ekf.update(z, H, R);
                 // Process GNSS data through the Kalman filter
                 filteredLocation_ekf = processLocationWithKalmanFilter(gnssLocation);
                 updateMap(filteredLocation, filteredLocation_ekf);
@@ -651,9 +652,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     mMap.setMapType(GlobalVariables.getMapType());
                 }
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                floorOverlayManager.setUserSelectedFloor(null);
             }
         });
     }
@@ -679,41 +680,55 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         pdrProcessing = new PdrProcessing(getContext());
-        //float currentElevation = sensorFusion.getElevation();
+
+        Button openDrawerButton = view.findViewById(R.id.open_drawer_button);
+        DrawerLayout drawerLayout = view.findViewById(R.id.drawer_layout);
+        openDrawerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                drawerLayout.openDrawer(GravityCompat.START); // Use GravityCompat.END for right-sided drawer
+            }
+        });
 
         Spinner floorSelectionSpinner = view.findViewById(R.id.floorSelectionSpinner);
 
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                R.array.floor_names, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        floorSelectionSpinner.setAdapter(adapter);
         floorSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                FloorOverlayManager.Floor selectedFloor = FloorOverlayManager.Floor.GROUND; // Default to GROUND, adjust based on position
+                FloorOverlayManager.Floor selectedFloor;
                 switch (position) {
-                    case 0:
-                        selectedFloor = FloorOverlayManager.Floor.GROUND;
-                        break;
                     case 1:
-                        selectedFloor = FloorOverlayManager.Floor.FIRST;
-                        break;
+                        floorOverlayManager.checkAndUpdateFloorOverlay();
                     case 2:
-                        selectedFloor = FloorOverlayManager.Floor.SECOND;
+                        selectedFloor = FloorOverlayManager.Floor.GROUND;
+                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
                         break;
                     case 3:
+                        selectedFloor = FloorOverlayManager.Floor.FIRST;
+                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
+                        break;
+                    case 4:
+                        selectedFloor = FloorOverlayManager.Floor.SECOND;
+                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
+                        break;
+                    case 5:
                         selectedFloor = FloorOverlayManager.Floor.THIRD;
+                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
                         break;
                 }
-                floorOverlayManager.setUserSelectedFloor(selectedFloor);
-                floorOverlayManager.updateFloorOverlaysBasedOnUserSelection();
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(), R.array.floor_names, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        floorSelectionSpinner.setAdapter(adapter);
 
         // Setup GNSS updates
         setupGnssUpdates();
@@ -916,10 +931,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             updatePDRLocations(pdrLatLng);
 //            updatePDRPath(pdrLatLng); // If you also want to draw the path
 
-            floorOverlayManager.isUserNearGroundFloor = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerNucleus.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerNucleus.latitude)
-                    && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerNucleus.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerNucleus.longitude));
-            floorOverlayManager.isuserNearGroundFloorLibrary = ((pdrLatLng.latitude >= FloorOverlayManager.southwestcornerLibrary.latitude && pdrLatLng.latitude <= FloorOverlayManager.northeastcornerLibrary.latitude)
-                    && (pdrLatLng.longitude >= FloorOverlayManager.southwestcornerLibrary.longitude && pdrLatLng.longitude <= FloorOverlayManager.northeastcornerLibrary.longitude));
+            floorOverlayManager.isUserNearGroundFloor = ((pdrLatLng.latitude >= floorOverlayManager.southwestcornerNucleus.latitude && pdrLatLng.latitude <= floorOverlayManager.northeastcornerNucleus.latitude)
+                    && (pdrLatLng.longitude >= floorOverlayManager.southwestcornerNucleus.longitude && pdrLatLng.longitude <= floorOverlayManager.northeastcornerNucleus.longitude));
+            floorOverlayManager.isuserNearGroundFloorLibrary = ((pdrLatLng.latitude >= floorOverlayManager.southwestcornerLibrary.latitude && pdrLatLng.latitude <= floorOverlayManager.northeastcornerLibrary.latitude)
+                    && (pdrLatLng.longitude >= floorOverlayManager.southwestcornerLibrary.longitude && pdrLatLng.longitude <= floorOverlayManager.northeastcornerLibrary.longitude));
             floorOverlayManager.checkAndUpdateFloorOverlay();
         }
     }

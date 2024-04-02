@@ -32,6 +32,7 @@
     <string name="wifi">WiFi Networks</string>
 
     <string-array name="floor_names">
+        <item>Automatic</item>
         <item>Ground Floor</item>
         <item>First Floor</item>
         <item>Second Floor</item>

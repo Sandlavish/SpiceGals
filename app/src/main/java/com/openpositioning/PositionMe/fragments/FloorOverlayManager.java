@@ -11,7 +11,7 @@ import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 
 public class FloorOverlayManager {
-    private boolean manualSelectionActive = false;
+    public boolean manualSelectionActive = false;
     public static boolean groundFloorVisible;
 
     public static boolean librarygroundfloorvisible;
@@ -70,69 +70,65 @@ public class FloorOverlayManager {
 
     public void setUserSelectedFloor(Floor floor) {
         this.userSelectedFloor = floor;
-        this.manualSelectionActive = true; // Indicate manual selection is active
+        this.manualSelectionActive = (floor != null); // Enable manual selection if a floor is selected, disable otherwise for automatic detection
         updateFloorOverlaysBasedOnUserSelection();
     }
 
-    public void updateFloorOverlaysBasedOnUserSelection() {
+    private void updateFloorOverlays(float elevation) {
+        // Automatic floor overlay update logic based on elevation
+        Floor targetFloor = determineFloorByElevation(elevation);
+        setFloorVisibility(targetFloor);
+        // Update overlays only if the floor has changed
+        if (targetFloor != currentFloor) {
+            currentFloor = targetFloor;
+            setFloorVisibility(targetFloor);
+        }
+    }
+
+    private void updateFloorOverlaysBasedOnUserSelection() {
+        // Manual floor overlay update logic
+        setFloorVisibility(userSelectedFloor);
+    }
+
+    private void setFloorVisibility(Floor floor) {
         // Hide all overlays initially
         setFloorVisibility(false, false, false, false);
 
-        if (userSelectedFloor != null) {
-            switch (userSelectedFloor) {
-                case GROUND:
-                    if (groundflooroverlay != null) groundflooroverlay.setVisible(true);
-                    if (librarygroundflooroverlay!=null) librarygroundflooroverlay.setVisible(true);
-                    break;
-                case FIRST:
-                    if (firstflooroverlay != null) firstflooroverlay.setVisible(true);
-                    if (libraryfirstflooroverlay!=null) libraryfirstflooroverlay.setVisible(true);
-                    break;
-                case SECOND:
-                    if (secondflooroverlay != null) secondflooroverlay.setVisible(true);
-                    if (librarysecondflooroverlay!=null) librarysecondflooroverlay.setVisible(true);
-                    break;
-                case THIRD:
-                    if (thirdflooroverlay != null) thirdflooroverlay.setVisible(true);
-                    if (librarythirdflooroverlay!=null) librarythirdflooroverlay.setVisible(true);
-                    break;
-            }
+        // Show only the selected floor overlay
+        switch (floor) {
+            case GROUND:
+                if (groundflooroverlay != null) groundflooroverlay.setVisible(true);
+                if (librarygroundflooroverlay != null) librarygroundflooroverlay.setVisible(true);
+                break;
+            case FIRST:
+                if (firstflooroverlay != null) firstflooroverlay.setVisible(true);
+                if (libraryfirstflooroverlay != null) libraryfirstflooroverlay.setVisible(true);
+                break;
+            case SECOND:
+                if (secondflooroverlay != null) secondflooroverlay.setVisible(true);
+                if (librarysecondflooroverlay != null) librarysecondflooroverlay.setVisible(true);
+                break;
+            case THIRD:
+                if (thirdflooroverlay != null) thirdflooroverlay.setVisible(true);
+                if (librarythirdflooroverlay != null) librarythirdflooroverlay.setVisible(true);
+                break;
+            default:
+                // Handle case where no floor is selected (possibly revert to automatic detection)
+                break;
         }
     }
 
-    public void updateFloorOverlays(float elevation) {
-        // Determine the floor based on elevation
-        Floor targetFloor = determineFloorByElevation(elevation);
-
-        // Update overlays based on the current visibility flags
-        setFloorVisibility(groundFloorVisible, firstFloorVisible, secondFloorVisible, thirdFloorVisible);
-        setFloorVisibility(librarygroundfloorvisible, libraryfirstfloorvisible, librarysecondfloorvisible, librarythirdfloorvisible);
-
-        // Update overlays only if the floor has changed
-        if (targetFloor != currentFloor) {
-            switch (targetFloor) {
-                case GROUND:
-                    setFloorVisibility(true, false, false, false);
-                    break;
-                case FIRST:
-                    setFloorVisibility(false, true, false, false);
-                    break;
-                case SECOND:
-                    setFloorVisibility(false, false, true, false);
-                    break;
-                case THIRD:
-                    setFloorVisibility(false, false, false, true);
-                    break;
-            }
-            currentFloor = targetFloor;
-        }
-    }
 
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
-        if (!manualSelectionActive) { // Only update based on elevation if manual selection is not active
+        if (!manualSelectionActive) {
+            // Automatic floor detection based on elevation
             float currentElevation = sensorFusion.getElevation();
+            determineFloorByElevation(currentElevation);
             updateFloorOverlays(currentElevation);
+        } else {
+            // Manual floor selection
+            updateFloorOverlaysBasedOnUserSelection();
         }
     }
 
@@ -216,6 +212,6 @@ public class FloorOverlayManager {
 
     // Floor enumeration to represent different floor levels
     public static enum Floor {
-        GROUND, FIRST, SECOND, THIRD
+        GROUND, FIRST, SECOND, THIRD, AUTOMATIC
     }
 }

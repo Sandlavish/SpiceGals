@@ -29,7 +29,6 @@
             android:layout_marginStart="344dp"
             android:layout_marginTop="200dp"
             android:src="@drawable/ic_baseline_no_wifi_24"
-
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -137,17 +136,17 @@
 
                 <TextView
                     android:id="@+id/currentElevation"
-                    android:layout_width="97dp"
+                    android:layout_width="138dp"
                     android:layout_height="24dp"
                     android:text="@string/elevation"
                     android:textColor="@color/LightYellow"
                     android:textSize="15sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.558"
+                    app:layout_constraintHorizontal_bias="0.781"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.348" />
+                    app:layout_constraintVertical_bias="0.357" />
 
                 <ImageView
                     android:id="@+id/redDot"
@@ -338,34 +337,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!--        <Button-->
-        <!--            android:id="@+id/cancelButton"-->
-        <!--            android:layout_width="125dp"-->
-        <!--            android:layout_height="60dp"-->
-        <!--            android:backgroundTint="@color/black"-->
-        <!--            android:text="Cancel"-->
-        <!--            app:cornerRadius="50dp"-->
-        <!--            app:icon="@drawable/ic_baseline_cancel_24"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintHorizontal_bias="0.947"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toTopOf="parent"-->
-        <!--            app:layout_constraintVertical_bias="0.976" />-->
-        <!--        <Button-->
-        <!--            android:id="@+id/stopButton"-->
-        <!--            android:layout_width="124dp"-->
-        <!--            android:layout_height="59dp"-->
-        <!--            android:backgroundTint="@color/black"-->
-        <!--            android:text="Stop"-->
-        <!--            app:cornerRadius="50dp"-->
-        <!--            app:icon="@drawable/ic_baseline_stop_24"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintHorizontal_bias="0.947"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toTopOf="parent"-->
-        <!--            app:layout_constraintVertical_bias="0.874" />-->
 
         <Spinner
             android:id="@+id/floorSelectionSpinner"
@@ -455,7 +426,23 @@
                 android:layout_height="match_parent"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_baseline_location_red" />
+
         </FrameLayout>
+
+        <Button
+            android:id="@+id/open_drawer_button"
+            android:layout_width="79dp"
+            android:layout_height="85dp"
+            android:backgroundTint="@color/black"
+            android:text="STOP"
+            android:icon="@drawable/ic_baseline_cancel_24"
+            app:cornerRadius="50dp"
+            app:iconTint="#E3E0E0"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.849" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
