@@ -18,7 +18,7 @@ import java.util.Random;
  *
  * Key Methods:
  * - Initializing the particle set around an initial position with a specified spread.
- * - Predicting particle displacement based on PDR updates.
+ * - Predicting particle displacement based on latest updates.
  * - Updating particle weights based on proximity to new measurements from various sources.
  * - Resampling particles to focus on the most probable states, thereby refining the position estimate.
  * - Calculating the fused position as the weighted average of particle positions, representing the best estimate of the true position.

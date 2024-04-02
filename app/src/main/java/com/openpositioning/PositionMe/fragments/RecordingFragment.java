@@ -441,7 +441,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         boolean inBuilding = floorOverlayManager.buildingBounds.contains(gnssLatLng) || floorOverlayManager.buildingBoundsLibrary.contains(gnssLatLng);
         floorSelectionSpinner.setVisibility(inBuilding ? View.VISIBLE : View.GONE);
-
+        floorOverlayManager.checkUserInbounds();
         floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
@@ -868,6 +868,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
             //Map Matching
             performMapMatching();
+
+
 
             if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
                 double errorFusedWifi = calculateDistanceBetweenLatLng(fusedLocation, WifiFilter);

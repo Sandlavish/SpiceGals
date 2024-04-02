@@ -118,6 +118,15 @@ public class FloorOverlayManager {
         }
     }
 
+    public void checkUserInbounds(){
+        float[] gnssLocation = sensorFusion.getGNSSLatitude(false); // Assume you have a method to get the current user location as a LatLng
+        LatLng gnssLatLng = new LatLng(gnssLocation[0], gnssLocation[1]);
+        // Check if the user is outside the building bounds
+        if (!buildingBounds.contains(gnssLatLng) && !buildingBoundsLibrary.contains(gnssLatLng)) {
+            hideAllOverlays(); // Hide all overlays if the user is outside
+        }
+    }
+
 
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
@@ -126,6 +135,8 @@ public class FloorOverlayManager {
             float currentElevation = sensorFusion.getElevation();
             determineFloorByElevation(currentElevation);
             updateFloorOverlays(currentElevation);
+
+
         } else {
             // Manual floor selection
             updateFloorOverlaysBasedOnUserSelection();
@@ -208,6 +219,18 @@ public class FloorOverlayManager {
                 .positionFromBounds(bounds)
                 .transparency(0.5f)); // Adjust transparency as needed
     }
+    public void hideAllOverlays() {
+        setFloorVisibility(false, false, false, false);
+        if (groundflooroverlay != null) groundflooroverlay.setVisible(false);
+        if (firstflooroverlay != null) firstflooroverlay.setVisible(false);
+        if (secondflooroverlay != null) secondflooroverlay.setVisible(false);
+        if (thirdflooroverlay != null) thirdflooroverlay.setVisible(false);
+        if (librarygroundflooroverlay != null) librarygroundflooroverlay.setVisible(false);
+        if (libraryfirstflooroverlay != null) libraryfirstflooroverlay.setVisible(false);
+        if (librarysecondflooroverlay != null) librarysecondflooroverlay.setVisible(false);
+        if (librarythirdflooroverlay != null) librarythirdflooroverlay.setVisible(false);
+    }
+
 
 
     // Floor enumeration to represent different floor levels
