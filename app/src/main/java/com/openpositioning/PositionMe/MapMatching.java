@@ -7,6 +7,7 @@ import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.openpositioning.PositionMe.fragments.RecordingFragment;
 import com.openpositioning.PositionMe.sensors.LocationResponse;
 
 import org.json.JSONArray;
@@ -93,7 +94,7 @@ public class MapMatching {
 
         for (LocationResponse location : radiomapData) {
             if (location.getFloor() == userFloor) {
-                double distance = euclideanDistance(userLat, userLon, location.getLatitude(), location.getLongitude());
+                double distance = distanceBetweenPoints(userLat, userLon, location.getLatitude(), location.getLongitude());
 
                 if (distance < minDistance) {
                     minDistance = distance;
@@ -105,13 +106,19 @@ public class MapMatching {
         return nearestLocation;
     }
 
-    private double euclideanDistance(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371; // Radius of the earth in kilometers
-        double latDistance = lat2 - lat1;
-        double lonDistance = lon2 - lon1;
-        double distance = Math.sqrt(latDistance * latDistance + lonDistance * lonDistance) * R;
+    private double distanceBetweenPoints(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of the earth in kilometers
 
-        // Convert to meters, since 1 degree of latitude is approximately 111 kilometers
-        return distance * 1000;
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = R * c * 1000; // convert to meters
+
+        return distance;
     }
 }
