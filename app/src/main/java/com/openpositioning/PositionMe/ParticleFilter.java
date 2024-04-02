@@ -5,19 +5,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/*
- * it's normal and often expected for the estimated position produced by a particle filter to be very close to
- * , or even seemingly overlapping with, the position indicated by a predictive marker
- * (like those derived from PDR, GNSS, or another tracking system) under certain conditions.
- * This outcome can be considered a sign that the particle filter is performing well,
- * particularly if the predictive markers are accurate representations of the true position.
- * */
+/**
+ * The ParticleFilter class implements a particle filter algorithm for position tracking and estimation,
+ * integrating various sources of position updates. It utilizes a probabilistic approach to estimate the system's current state by dispersing a set of particles
+ * across the estimated position and adjusting their distribution based on new measurements. Each particle represents a potential state,
+ * with a position (latitude and longitude) and a weight indicating its likelihood.
+ *
+ * The class provides functionality to initialize the filter with a set number of particles around an initial position,
+ * update the filter state with new positional measurements, and compute a fused position as the weighted average of all particles.
+ * This approach allows for the mitigation of measurement noise and inaccuracies inherent in any single positioning system,
+ * resulting in a more accurate and reliable estimation of the true position.
+ *
+ * Key Methods:
+ * - Initializing the particle set around an initial position with a specified spread.
+ * - Predicting particle displacement based on PDR updates.
+ * - Updating particle weights based on proximity to new measurements from various sources.
+ * - Resampling particles to focus on the most probable states, thereby refining the position estimate.
+ * - Calculating the fused position as the weighted average of particle positions, representing the best estimate of the true position.
+ * 
+ * @author: Batu Bayram 
+ */
 
 public class ParticleFilter {
     private List<Particle> particles;
     private int numberOfParticles;
     private Random random;
-    private LatLng lastPDRUpdate; // Track the last PDR update for displacement calculation
+    private LatLng lastPosUpdate;
 
     // Inner class to represent particle
     private class Particle {
@@ -34,12 +47,13 @@ public class ParticleFilter {
         this.numberOfParticles = numberOfParticles;
         this.particles = new ArrayList<>(numberOfParticles);
         this.random = new Random();
-        this.lastPDRUpdate = initialPosition;
+        this.lastPosUpdate = initialPosition;
         initializeParticles(initialPosition);
     }
 
+    //Method to initialise the particle with an initial particle
     private void initializeParticles(LatLng initialPosition) {
-        double spreadRadius = 10; // Meters, adjust based on the scale of your environment
+        double spreadRadius = 10;
         for (int i = 0; i < numberOfParticles; i++) {
             double offsetLat = (random.nextDouble() - 0.5) * spreadRadius / 111111; // Convert meters to degrees latitude
             double offsetLng = (random.nextDouble() - 0.5) * spreadRadius / (111111 * Math.cos(Math.toRadians(initialPosition.latitude))); // Convert meters to degrees longitude
@@ -47,7 +61,7 @@ public class ParticleFilter {
         }
     }
 
-    // Update the filter based on new PDR, GNSS, and WiFi positions
+   //Updating the filter by giving one base (predict) and two adjusting (updating) positions
     public void updateFilter(LatLng predictPos, LatLng updPos1, LatLng updPos2, double measurementNoise) {
         // Predict movement based on the most reliable
         predict(predictPos);
@@ -60,11 +74,12 @@ public class ParticleFilter {
         resample();
     }
 
+    //Method to predict particle
     private void predict(LatLng currentPosition) {
-        // Calculate displacement since the last PDR update
-        LatLng displacement = new LatLng(currentPosition.latitude - lastPDRUpdate.latitude,
-                currentPosition.longitude - lastPDRUpdate.longitude);
-        lastPDRUpdate = currentPosition; // Update last PDR position for the next prediction
+        // Calculate displacement since the last update
+        LatLng displacement = new LatLng(currentPosition.latitude - lastPosUpdate.latitude,
+                currentPosition.longitude - lastPosUpdate.longitude);
+        lastPosUpdate = currentPosition; // Update last position for the next prediction
 
         // Move each particle according to the displacement
         for (Particle particle : particles) {
@@ -73,6 +88,7 @@ public class ParticleFilter {
         }
     }
 
+    // Method to update the filter particles based on new adjusted weight considering measurement noise
     private void update(LatLng measurement, double measurementNoise) {
         // Update each particle's weight based on its distance to the measurement
         double totalWeight = 0.0;
@@ -89,8 +105,7 @@ public class ParticleFilter {
         }
     }
 
-    // Resampling method remains the same as previously defined
-
+    // Method to get final fused position based on the a
     public LatLng getFusedPosition() {
         // Calculate the fused position as the weighted average of all particles
         double sumLat = 0.0;
@@ -106,12 +121,13 @@ public class ParticleFilter {
         return new LatLng(sumLat / totalWeight, sumLon / totalWeight);
     }
 
+    // Method to calculate Gaussian Likelihood
     private double calculateLikelihood(double distance, double measurementNoise) {
         double variance = measurementNoise * measurementNoise;
         return Math.exp(-(distance * distance) / (2 * variance)) / Math.sqrt(2 * Math.PI * variance);
     }
 
-    // Systematic resampling method
+    // Systematic resampling method to update the complete filter
     public void resample() {
         List<Particle> newParticles = new ArrayList<>(numberOfParticles);
         double B = 0.0;
@@ -131,3 +147,11 @@ public class ParticleFilter {
     }
 
 }
+
+/* ----------------------  NOTE ----------------------
+ * it's normal and often expected for the estimated position produced by a particle filter to be very close to
+ * , or even seemingly overlapping with, the position indicated by a predictive marker
+ * (like those derived from PDR, GNSS, or another tracking system) under certain conditions.
+ * This outcome can be considered a sign that the particle filter is performing well,
+ * particularly if the predictive markers are accurate representations of the true position.
+ * */

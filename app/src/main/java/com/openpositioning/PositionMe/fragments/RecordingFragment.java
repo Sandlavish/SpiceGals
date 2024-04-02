@@ -75,47 +75,69 @@ import java.util.concurrent.Executors;
  * @see CorrectionFragment the next fragment in the nav graph.
  * @see SensorFusion the class containing sensors and recording.
  *
- * @author Mate Stodulka
+ * The RecordingFragment class extends the Fragment class and implements OnMapReadyCallback to manage
+ * a recording session's UI and logic within the PositionMe application. This class is responsible for
+ * initializing and updating the map view with real-time data, handling user interactions
+ * and managing sensor data for indoor/outdoor detection, WiFi positioning, and GNSS/PDR updates.
+ * It showcases various UI elements such as buttons, and custom markers, to provide feedback
+ * on the recording process, including the current location, elevation, and distance traveled.
  *
- * Adjusted to include the particle filter
- * @author Batu Bayram
+ * Key features include:
+ * - Displaying and updating a Google Map with the user's trajectory, using polyline overlays to represent
+ * the path taken based on PDR (Pedestrian Dead Reckoning), GNSS (Global Navigation Satellite System), and
+ * WiFi positioning data.
+ * - Processing and filtering location data through algorithms such as Kalman filters and  Particle Filter
+ * to improve accuracy.
+ * - Dynamically updating the UI based on sensor data, including light levels for indoor/outdoor detection
+ * and user elevation.
+ * - Offering interactive elements like buttons to tag locations manually, switch map views, and control
+ * the recording session.
+ * - Handling map matching to snap the user's path to a predefined map dataset, enhancing accuracy in
+ * representing the user's movements within the app's context.
  *
- * Adjusted to include EKF
- * @author Apoorv Tewari
- *
- *
+ * This class integrates closely with other components of the PositionMe app, including SensorFusion for
+ * accessing sensor data, MapMatching for aligning recorded paths with actual map paths, and server communication
+ * modules for tasks such as fetching WiFi-based positions. It plays a crucial role in the app's functionality
+ * by enabling detailed and accurate recording of user paths in various environments.
  *
  * @author Michalis Voudaskas
+ * @author Batu Bayram
+ * @author Apoorv Tewari
  *
  */
+
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
+    //Instantiations
     private static final float DEFAULT_ACCURACY = 0.5f ;
     private Polyline pdrPolyline;
     private Polyline userTrajectory;
 
     private long lastUpdateTime = 0;
 
+    // Handlers/Runnables Refresh Tasks
     private Handler gnssUpdateHandler;
     private Runnable gnssUpdateTask;
     private Handler lightLevelHandler;
-
-    private LatLng filteredLocation_ekf;
-    private LatLng fusedLocation;
-
-    private LatLng filteredLocation; // You might need to adjust this method to suit your needs
     private Runnable lightLevelRunnable;
 
+    //Locations
+    private LatLng filteredLocation_ekf;
+    private LatLng fusedLocation;
+    private LatLng filteredLocation;
+    private float[] gnssLocation;
+    private LatLng PDRPOS;
+    private LatLng wifiLocation;
+
+    //Indoor/Outdoor detection helpers
     private static final float INDOOR_OUTDOOR_THRESHOLD = 1000.0f;
     private boolean isOutdoor;
 
-    private float[] gnssLocation;
-
+    //PDR class instantiation
     private PdrProcessing pdrProcessing;
 
     private MapMatching mapMatcher;
     private int currentFloor;
-
 
     //Button to end PDR recording
     private Button stopButton;
@@ -126,7 +148,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private LatLngBounds TestingBounds;
     //Compass icon to show user direction of heading
     private ImageView compassIcon;
-    private LatLng wifiLocation;
+
     float elevationVal;
     // Elevator icon to show elevator usage
     private ImageView elevatorIcon;
@@ -149,18 +171,16 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private SensorFusion sensorFusion;
     //Timer to end recording
     private CountDownTimer autoStop;
-    //?
     private Handler refreshDataHandler;
 
     //variables to store data of the trajectory
     private float distance;
-
-    private Marker mapMatched;
     private float previousPosX;
     private float previousPosY;
 
     private GoogleMap mMap;
     private Marker ekfmarker;
+    private Marker mapMatched;
 
     private List<LatLng> recentFusedLocations = new ArrayList<>();
     private static final int MOVING_AVERAGE_WINDOW = 5; // Number of locations to average
@@ -170,8 +190,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
 
     private Boolean wasPreviouslyOutdoor = null; // null indicates no previous status
-
-    private LatLng PDRPOS;
 
     private static final float Q_METRES_PER_SECOND = 1f; // Adjust this value based on your needs
 
@@ -195,7 +213,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private WifiFPManager wifiFPManager;
     private ServerCommunications serverCommunications;
-
 
     private KalmanFilter.KalmanLatLong kalmanFilter;
 
@@ -812,7 +829,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private final Runnable refreshDataTask = new Runnable() {
         @Override
         public void run() {
-            // Get new position
+            //Getting positions from all 3 sources and processing (if needed) to LatLng
             float[] pdrValues = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
             float[] gnssValues = sensorFusion.getGNSSLatitude(false);
 
@@ -840,6 +857,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     fusedLocation = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
                 }
             }
+            //Map Matching
             performMapMatching();
 
             if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
@@ -865,7 +883,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             LatLng movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
 
             updateMapWithFusedPosition(movingAverageFusedLocation);
-            updatePDRPath(movingAverageFusedLocation);
+            updatePath(movingAverageFusedLocation);
 
             previousPosX = pdrValues[0];
             previousPosY = pdrValues[1];
@@ -892,7 +910,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         float[] pdrCoordinates = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
         if (pdrCoordinates != null && PDRPOS != null) {
             LatLng pdrLatLng = convertMetersToLatLng(pdrCoordinates, PDRPOS);
-            //updatePDRMarker(pdrLatLng);
             updatePDRLocations(pdrLatLng);
 //            updatePDRPath(pdrLatLng); // If you also want to draw the path
 
@@ -1045,22 +1062,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distance;
     }
 
-//    private void updatePDRMarker(LatLng position) {
-//        if (mMap != null) {
-//            float bearing = sensorFusion.passOrientation(); // Replace with actual method to get bearing
-//            if (pdrMarker == null) {
-//                pdrMarker = mMap.addMarker(new MarkerOptions()
-//                        .position(position)
-//                        .title("PDR Position")
-//                        .rotation(bearing)
-//                        .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_navigation_24)))
-//                        .anchor(0.5f, 0.5f)); // Ensure the marker rotates around its center
-//            } else {
-//                pdrMarker.setRotation((float) +Math.toDegrees(sensorFusion.passOrientation()));
-//                pdrMarker.setPosition(position);
-//            }
-//        }
-//    }
 
     //haversine formula to get the distance between 2 latlongs
     private LatLng convertMetersToLatLng(float[] pdrCoordinates, LatLng startLatLng) {
@@ -1081,7 +1082,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private Polyline pdrPath; // Field to hold the PDR path
 
-    private void updatePDRPath(LatLng newPosition) {
+    private void updatePath(LatLng newPosition) {
         if (mMap != null) {
             if (pdrPath == null) {
                 // First time: create the polyline
@@ -1145,7 +1146,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    //Particle Filter BS - Batu
+    // Filter Setup Method for Particle Filter
     public void filterSetup(float[] startloc) {
         if (startloc != null) {
             double latitude = startloc[0];
@@ -1156,16 +1157,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-//    private void applyParticleFilter(){
-//        float[] gnssFilter = sensorFusion.getGNSSLatitude(false);
-//        float[] pdrFilter = sensorFusion.getSensorValueMap().get(SensorTypes.PDR);
-//
-//        LatLng PDRFilter = convertMetersToLatLng(pdrFilter, PDRPOS);
-//        LatLng GNSSFilter = new LatLng(gnssFilter[0], gnssFilter[1]);
-//
-//        updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
-//    }
-
+    //Method to update Particle Filter to get an estimated position
     private LatLng updateParticleFilterPositions(LatLng predictPos, LatLng UpdatePos1, LatLng UpdatePos2) {
         if (particleFilter != null) {
             // Assuming a small measurement noise for demonstration. Adjust based on actual data quality.
@@ -1182,6 +1174,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         return null;
     }
+
+    // Updates the map with the fused position
     private void updateMapWithFusedPosition(LatLng position) {
 
         if (position == null) {
