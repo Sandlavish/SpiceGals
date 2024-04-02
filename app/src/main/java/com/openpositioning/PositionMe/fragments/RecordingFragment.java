@@ -145,7 +145,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     //variables to store data of the trajectory
     private float distance;
 
-    private Marker pdrMarker;
+    private Marker mapMatched;
     private float previousPosX;
     private float previousPosY;
 
@@ -495,9 +495,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private void addMarkerToMap(double lat, double lon) {
         if (mMap != null) {
+            // Remove the previous marker if it exists
+            if (mapMatched != null) {
+                mapMatched.remove();
+            }
+
             LatLng position = new LatLng(lat, lon);
-            mMap.addMarker(new MarkerOptions().position(position).title("Nearest Location"));
-            //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
+            mapMatched = mMap.addMarker(new MarkerOptions()
+                    .position(position)
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_red_dot_24)))
+                    .title("Nearest Location"));
+            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
         }
     }
 
