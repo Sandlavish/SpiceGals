@@ -654,6 +654,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 if (mMap != null) {
                     mMap.setMapType(GlobalVariables.getMapType());
                 }
+                else{
+                    mMap.setMapType(GlobalVariables.getMapType());
+                }
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
@@ -661,6 +664,18 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
+
+
+    private int getMapTypeFromIndex(int index) {
+        switch (index) {
+            case 0: return GoogleMap.MAP_TYPE_NORMAL;
+            case 1: return GoogleMap.MAP_TYPE_SATELLITE;
+            case 2: return GoogleMap.MAP_TYPE_TERRAIN;
+            case 3: return GoogleMap.MAP_TYPE_HYBRID;
+            default: return GlobalVariables.getMapType();
+        }
+    }
+
 
     /**
      * {@inheritDoc}
