@@ -586,18 +586,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Determine indoor/outdoor status based on light level and building bounds
         boolean currentlyOutdoor = currentLightLevel > INDOOR_OUTDOOR_THRESHOLD || !isUserInsideAnyBuilding;
-
-        // Check for a change in the indoor/outdoor status
-        if (wasPreviouslyOutdoor == null || wasPreviouslyOutdoor != currentlyOutdoor) {
-            // If the status has changed, show a toast message
-            Toast.makeText(getContext(), "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"), Toast.LENGTH_SHORT).show();
-
-            // Update the previous state
-            wasPreviouslyOutdoor = currentlyOutdoor;
-        }
-
         // Update the global isOutdoor variable based on the current status
         isOutdoor = currentlyOutdoor;
+        // Check for a change in the indoor/outdoor status
+        if (wasPreviouslyOutdoor == null || wasPreviouslyOutdoor != currentlyOutdoor) {
+            // Update the previous state
+            wasPreviouslyOutdoor = currentlyOutdoor;
+            // If the status has changed, show a toast message
+            Toast.makeText(getContext(), "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"), Toast.LENGTH_SHORT).show();
+        }
        // Log.d("RecordingFragment", "Detected as " + (isOutdoor ? "outdoor environment" : "indoor environment"));
     }
 
