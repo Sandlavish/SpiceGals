@@ -4,7 +4,8 @@ package com.openpositioning.PositionMe.sensors;
 /**
  * {@inheritDoc}
  *
- *Class to handle the server response for the wifi fingerprints
+ *Class to handle the server response for the json files received from the server and the radiomap
+ * @author Michalis Voudaskas
  */
 public class LocationResponse {
     private double latitude;

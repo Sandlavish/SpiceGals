@@ -21,7 +21,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
-
+/**
+ * Performs map matching by locating the nearest point in a predefined dataset
+ * based on the user's current GPS coordinates. The class reads a JSON file containing
+ * location data, which includes latitude, longitude, and floor information, and parses
+ * it into a list of {@link LocationResponse} objects.
+ *
+ * The primary functionality is offered through the {@code findNearestLocation} method,
+ * which computes the distance between the user's current location and each point in the
+ * dataset using a Euclidean distance calculation as the distances are relatively short.
+ * The nearest location is identified based on the smallest distance and matching floor number.
+ *
+ * The {@code euclideanDistance} method provides a simple, planar distance calculation
+ * between two geographical points, which is less accurate over long distances compared
+ * to spherical models but is suitable for small areas such as indoor environments.
+ *
+ * The parsed data from the JSON file is stored in a list of {@link LocationResponse} objects
+ * that hold the latitude, longitude, and floor of each location. Upon construction, the
+ * class logs the first location from the dataset for testing purposes. If no locations
+ * are found, or if an error occurs during parsing, it will log the corresponding information.
+ *
+ * Usage of this class allows for straightforward integration of map matching features into
+ * location-aware applications, particularly for indoor navigation systems.
+ *
+ * @author Michalis Voudaskas
+ */
 public class MapMatching {
 
     private List<LocationResponse> radiomapData;
@@ -50,15 +74,15 @@ public class MapMatching {
             // Optional: Log the first location as a test
             if (!radiomapData.isEmpty()) {
                 LocationResponse firstLocation = radiomapData.get(0);
-                Log.d("MapMatching", "First entry - Lat: " + firstLocation.getLatitude() + ", Lon: " + firstLocation.getLongitude() + ", Floor ID: " + firstLocation.getFloor());
+                //Log.d("MapMatching", "First entry - Lat: " + firstLocation.getLatitude() + ", Lon: " + firstLocation.getLongitude() + ", Floor ID: " + firstLocation.getFloor());
             } else{
-                Log.d("MapMatching", "Empty");
+               // Log.d("MapMatching", "Empty");
 
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            Log.e("MapMatching", "Error parsing JSON", e);
+           // Log.e("MapMatching", "Error parsing JSON", e);
         }
     }
 

@@ -9,10 +9,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 /**
- * {@inheritDoc}
- * Class to create the wifi fingerprints
- * takes the wifi list from sensor fusion and creates a dictionary which only includes the BSSID and RSSI
- * this dictionary is then wrapped in a JSON @author Michalis Voudaskas
+ * Manages the creation of Wi-Fi fingerprints for the application. This class is responsible
+ * for extracting Wi-Fi data from the {@link SensorFusion} instance and compiling it into
+ * a Wi-Fi fingerprint JSON structure. The fingerprint includes the BSSID (Basic Service
+ * Set Identifier) and RSSI (Received Signal Strength Indicator) of each detected Wi-Fi
+ * network.
+ *
+ * The Wi-Fi list, obtained from {@link SensorFusion}, is transformed into a dictionary
+ * mapping BSSID to RSSI values. This dictionary is then serialized to JSON format, creating
+ * a Wi-Fi fingerprint that can be used for location identification and other purposes within
+ * the application.
+ *
+ * The class follows a singleton pattern to ensure that only one instance manages Wi-Fi
+ * fingerprint creation throughout the application lifecycle.
+ *
+ * Usage of this class involves invoking the {@code createWifiFingerprintJson} method to
+ * retrieve the current Wi-Fi fingerprint as a JSON string.
+ *
+ * Exception handling within the method ensures graceful degradation in case of errors
+ * during the Wi-Fi fingerprint creation process.
+ *
+ * @author Michalis Voudaskas
  */
 public class WifiFPManager {
     private SensorFusion sensorFusion;

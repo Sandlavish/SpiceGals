@@ -77,6 +77,16 @@ import java.util.concurrent.Executors;
  *
  * @author Mate Stodulka
  *
+ * Adjusted to include the particle filter
+ * @author Batu Bayram
+ *
+ * Adjusted to include EKF
+ * @author Apoorv Tewari
+ *
+ *
+ *
+ * @author Michalis Voudaskas
+ *
  */
 public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
@@ -300,7 +310,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * from the SensorFusion class. After acquiring these details, it constructs a new
      * GNSS sample with this data, sets the provider to "fusion", and adds this sample
      * to the trajectory being built. If the current location data is not available,
-     * it logs an error message. @author Michalis Voudaskas
+     * it logs an error message.
+     * @author Michalis Voudaskas
      */
 
     private void onAddTagClicked() {
@@ -475,24 +486,32 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         // Predict the next state
         ekf.predict(F, Q);
     }
+    /**
+     * Conducts map matching based on the user's current fused coordinates. This method is responsible
+     * for finding the nearest point of interest within a predefined map data set that corresponds
+     * to the user's real-world location. The method retrieves the user's latitude and longitude
+     * from the fusedLocation variable and invokes the mapMatching's findNearestLocation method
+     * to locate the closest point based on the user's current floor.
+     */
+
 
     private void performMapMatching() {
         // Assume LocationResponse.getFloor() gives you the current floor number
         // And fusedLocation gives you the current lat and lon
         double currentLatitude = fusedLocation.latitude;
         double currentLongitude = fusedLocation.longitude;
-        Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
+        //Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
         LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
         if (nearestLocation != null) {
              //Use the getter methods to access the location's latitude and longitude
-            Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
+           // Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
 
             addMarkerToMap(nearestLocation.getLatitude(), nearestLocation.getLongitude());
         } else {
-            Log.d("MapMatching", "No location found on the given floor.");
+           // Log.d("MapMatching", "No location found on the given floor.");
         }
     }
-
+    //method to add the mapmatched marker to the map
     private void addMarkerToMap(double lat, double lon) {
         if (mMap != null) {
             // Remove the previous marker if it exists
