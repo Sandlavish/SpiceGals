@@ -390,6 +390,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(GoogleMap googleMap) {
 
         mMap = googleMap;
+        mMap.setMapType(GlobalVariables.getMapType());
+
+
         mMap.getUiSettings().setCompassEnabled(true);
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
@@ -647,7 +650,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 // Update the global map type based on user selection
-                GlobalVariables.setMapType(getMapTypeFromIndex(position));
+                GlobalVariables.setMapType(GlobalVariables.getMapType());
                 if (mMap != null) {
                     mMap.setMapType(GlobalVariables.getMapType());
                 }
@@ -658,18 +661,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
-
-
-    private int getMapTypeFromIndex(int index) {
-        switch (index) {
-            case 0: return GoogleMap.MAP_TYPE_NORMAL;
-            case 1: return GoogleMap.MAP_TYPE_SATELLITE;
-            case 2: return GoogleMap.MAP_TYPE_TERRAIN;
-            case 3: return GoogleMap.MAP_TYPE_HYBRID;
-            default: return GlobalVariables.getMapType();
-        }
-    }
-
 
     /**
      * {@inheritDoc}

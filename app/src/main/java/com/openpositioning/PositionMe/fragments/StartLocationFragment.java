@@ -193,19 +193,5 @@ public class StartLocationFragment extends Fragment {
                 Navigation.findNavController(view).navigate(action);
             }
         });
-
-        // New button for saving map type
-        Button saveMapTypeButton = view.findViewById(R.id.saveMapTypeButton);
-        saveMapTypeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Save the selected map type globally
-                GlobalVariables.setMapType(type);
-
-                // Optionally, provide user feedback or navigate
-                Toast.makeText(getContext(), "Map type saved!", Toast.LENGTH_SHORT).show();
-                // If you want to navigate upon saving, you can do that here as well
-            }
-        });
     }
 }
