@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements Observer {
         Toolbar toolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
         toolbar.showOverflowMenu();
-        toolbar.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.primaryBlue));
+        toolbar.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.black));
         toolbar.setTitleTextColor(ContextCompat.getColor(getApplicationContext(), R.color.white));
 
         // Set up back action
