@@ -58,8 +58,8 @@
 
                 <Button
                     android:id="@+id/saveMapTypeButton"
-                    android:layout_width="101dp"
-                    android:layout_height="106dp"
+                    android:layout_width="103dp"
+                    android:layout_height="110dp"
                     android:layout_marginEnd="24dp"
                     android:backgroundTint="@color/black"
                     android:onClick="onAddTagButtonClicked"
@@ -73,7 +73,7 @@
                 <Button
                     android:id="@+id/startLocationDone"
                     android:layout_width="102dp"
-                    android:layout_height="106dp"
+                    android:layout_height="110dp"
                     android:layout_marginStart="24dp"
                     android:layout_marginEnd="24dp"
                     android:backgroundTint="@color/black"
@@ -83,16 +83,15 @@
                     app:icon="@drawable/ic_baseline_add_location_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/saveMapTypeButton"
-                    app:layout_constraintHorizontal_bias="0.454"
+                    app:layout_constraintHorizontal_bias="1.0"
                     app:layout_constraintStart_toEndOf="@+id/mapTypeSpinner"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintVertical_bias="0.974" />
 
                 <Spinner
                     android:id="@+id/mapTypeSpinner"
-                    android:layout_width="101dp"
-                    android:layout_height="106dp"
-                    android:layout_marginStart="24dp"
+                    android:layout_width="96dp"
+                    android:layout_height="100dp"
                     android:background="@drawable/spinnerbutton"
                     android:backgroundTint="#B2D81E1E"
                     android:dropDownWidth="match_parent"
@@ -102,6 +101,8 @@
                     android:spinnerMode="dialog"
                     android:textColor="@color/ic_launcher_simple_background"
                     app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.111"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintVertical_bias="0.974" />
