@@ -113,15 +113,18 @@ public class StartLocationFragment extends Fragment {
                     public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
                         switch (position) {
                             case 0:
-                                type = GoogleMap.MAP_TYPE_NORMAL;
+                                type = GlobalVariables.getMapType();
                                 break;
                             case 1:
-                                type = GoogleMap.MAP_TYPE_SATELLITE;
+                                type = GoogleMap.MAP_TYPE_NORMAL;
                                 break;
                             case 2:
-                                type = GoogleMap.MAP_TYPE_TERRAIN;
+                                type = GoogleMap.MAP_TYPE_SATELLITE;
                                 break;
                             case 3:
+                                type = GoogleMap.MAP_TYPE_TERRAIN;
+                                break;
+                            case 4:
                                 type = GoogleMap.MAP_TYPE_HYBRID;
                                 break;
                         }
