@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -50,6 +51,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.navigation.NavigationView;
+import com.openpositioning.PositionMe.MapMatching;
 import com.openpositioning.PositionMe.ParticleFilter;
 import com.openpositioning.PositionMe.PdrProcessing;
 import com.openpositioning.PositionMe.R;
@@ -100,6 +102,9 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private float[] gnssLocation;
 
     private PdrProcessing pdrProcessing;
+
+    private MapMatching mapMatcher;
+    private int currentFloor;
 
 
     //Button to end PDR recording
@@ -211,6 +216,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Initialize trajectory
         trajectory = Traj.Trajectory.newBuilder();
+        mapMatcher = new MapMatching(getContext());
 
 
         // Initialize the Extended Kalman Filter
@@ -468,6 +474,31 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         // Predict the next state
         ekf.predict(F, Q);
+    }
+
+    private void performMapMatching() {
+        // Assume LocationResponse.getFloor() gives you the current floor number
+        // And fusedLocation gives you the current lat and lon
+        double currentLatitude = fusedLocation.latitude;
+        double currentLongitude = fusedLocation.longitude;
+        Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
+        LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
+        if (nearestLocation != null) {
+             //Use the getter methods to access the location's latitude and longitude
+            Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
+
+            addMarkerToMap(nearestLocation.getLatitude(), nearestLocation.getLongitude());
+        } else {
+            Log.d("MapMatching", "No location found on the given floor.");
+        }
+    }
+
+    private void addMarkerToMap(double lat, double lon) {
+        if (mMap != null) {
+            LatLng position = new LatLng(lat, lon);
+            mMap.addMarker(new MarkerOptions().position(position).title("Nearest Location"));
+            //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
+        }
     }
 
     private void updateMap(LatLng newLocation, LatLng filteredLocation_ekf) {
@@ -782,6 +813,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     fusedLocation = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
                 }
             }
+            performMapMatching();
 
             if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
                 double errorFusedWifi = calculateDistanceBetweenLatLng(fusedLocation, WifiFilter);
@@ -855,6 +887,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             try {
                 String wifiFingerprintJson = wifiFPManager.createWifiFingerprintJson();
                 LocationResponse locationResponse = serverCommunications.sendWifiFingerprintToServer(wifiFingerprintJson);
+                 currentFloor = locationResponse.getFloor();
 
                 getActivity().runOnUiThread(() -> {
                     // Check if locationResponse is null, which indicates no WiFi coverage

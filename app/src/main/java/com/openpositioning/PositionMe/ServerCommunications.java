@@ -476,7 +476,7 @@ public class ServerCommunications implements Observable {
                 JSONObject jsonObj = new JSONObject(responseData);
                 double latitude = jsonObj.optDouble("lat", Double.NaN); // Default to NaN if not present
                 double longitude = jsonObj.optDouble("lon", Double.NaN);
-                String floor = jsonObj.optString("floor", null); // Default to null if not present
+                int floor = jsonObj.optInt("floor"); // Default to null if not present
                 return new LocationResponse(latitude, longitude, floor);
             } else {
                 // Log error and return null to indicate no WiFi coverage
