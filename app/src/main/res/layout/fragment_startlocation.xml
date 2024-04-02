@@ -58,8 +58,8 @@
 
                 <Button
                     android:id="@+id/startLocationDone"
-                    android:layout_width="101dp"
-                    android:layout_height="112dp"
+                    android:layout_width="161dp"
+                    android:layout_height="60dp"
                     android:backgroundTint="@color/black"
                     android:onClick="onAddTagButtonClicked"
                     android:text="Set"
@@ -67,15 +67,15 @@
                     app:icon="@drawable/ic_baseline_add_location_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.906"
+                    app:layout_constraintHorizontal_bias="0.948"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.954" />
+                    app:layout_constraintVertical_bias="0.937" />
 
                 <Spinner
                     android:id="@+id/mapTypeSpinner"
-                    android:layout_width="102dp"
-                    android:layout_height="102dp"
+                    android:layout_width="161dp"
+                    android:layout_height="54dp"
                     android:background="@drawable/spinnerbutton"
                     android:backgroundTint="#B2D81E1E"
                     android:dropDownWidth="match_parent"
@@ -86,10 +86,10 @@
                     android:textColor="@color/ic_launcher_simple_background"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.906"
+                    app:layout_constraintHorizontal_bias="0.948"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.736" />
+                    app:layout_constraintVertical_bias="0.836" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
