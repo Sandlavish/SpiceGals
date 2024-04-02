@@ -204,6 +204,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private boolean areGnssMarkersVisible = true;
     private boolean areWifiMarkersVisible = true;
     private boolean arePDRMarkersVisible = true;
+    private boolean isEKFMarkerVisible = true;
+    private boolean isMatchedMarkerVisible = true;
 
     private static final int MAX_RECENT_LOCATIONS = 5;
     private static final double OUTLIER_THRESHOLD_METERS = 1;
@@ -540,7 +542,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             mapMatched = mMap.addMarker(new MarkerOptions()
                     .position(position)
                     .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_red_dot_24)))
-                    .title("Nearest Location"));
+                    .title("Nearest Location")
+                    .visible(isMatchedMarkerVisible));
             //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
         }
     }
@@ -550,9 +553,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             ekfmarker = mMap.addMarker(new MarkerOptions()
                     .position(filteredLocation_ekf)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)));
+
         } else {
             // Update the marker's position to the new, filtered location
             ekfmarker.setPosition(filteredLocation_ekf);
+            ekfmarker.setVisible(isEKFMarkerVisible);
         }
         // Consider not animating the camera every update to avoid jitter
         //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
@@ -1250,19 +1255,24 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     //display the user the option to choose which markers they want to see @author: Michalis Voudaskas
     private void showToggleMarkersDialog() {
         // Current visibility states
-        boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible, arePDRMarkersVisible};
+        boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible, arePDRMarkersVisible, isEKFMarkerVisible, isMatchedMarkerVisible};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Toggle Marker Visibility")
-                .setMultiChoiceItems(new CharSequence[]{"GNSS Markers", "Wi-Fi Markers", "PDR Markers"}, checkedItems, (dialog, which, isChecked) -> {
+                .setMultiChoiceItems(new CharSequence[]{"GNSS Markers", "Wi-Fi Markers", "PDR Markers", "EKF Marker", "Map Matched Marker"}, checkedItems, (dialog, which, isChecked) -> {
                     if (which == 0) { // GNSS Markers
                         areGnssMarkersVisible = isChecked;
                     } else if (which == 1) { // Wi-Fi Markers
                         areWifiMarkersVisible = isChecked;
                     } else if (which ==2) {//pdr MARKERS
                         arePDRMarkersVisible = isChecked;
+                    } else if (which ==3 ){
+                        isEKFMarkerVisible = isChecked;
+                    } else if (which == 4) {
+                        isMatchedMarkerVisible = isChecked;
                     }
                 })
+
                 .setPositiveButton("OK", (dialog, id) -> {
                     toggleMarkerVisibility();
                 })

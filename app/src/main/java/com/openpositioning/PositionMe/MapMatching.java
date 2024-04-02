@@ -65,7 +65,7 @@ public class MapMatching {
                 JSONObject jsonLocation = radiomapArray.getJSONObject(i);
                 double lat = jsonLocation.getDouble("lat");
                 double lon = jsonLocation.getDouble("lon");
-                int floorId = jsonLocation.getInt("floor_id"); // Assuming floor_id is a string
+                int floorId = jsonLocation.getInt("floor_id");
 
                 LocationResponse location = new LocationResponse(lat, lon, floorId);
                 radiomapData.add(location);
