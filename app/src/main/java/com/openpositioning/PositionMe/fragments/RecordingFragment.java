@@ -521,6 +521,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         double currentLongitude = fusedLocation.longitude;
         //Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
         LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
+        //LocationResponse nearestLocation = mapMatcher.findKNNLocation(currentLatitude, currentLongitude, currentFloor, 3);
         if (nearestLocation != null) {
              //Use the getter methods to access the location's latitude and longitude
            // Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());

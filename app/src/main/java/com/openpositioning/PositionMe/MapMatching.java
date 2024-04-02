@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -57,7 +58,6 @@ import java.util.stream.Collectors;
 public class MapMatching {
 
     private List<LocationResponse> radiomapData;
-
 
     public MapMatching(Context context) {
         try {
@@ -112,6 +112,22 @@ public class MapMatching {
 
         return nearestLocation;
     }
+
+    public LocationResponse findKNNLocation(double userLat, double userLon, int userFloor, int k) {
+        List<LocationResponse> filteredLocations = radiomapData.stream()
+                .filter(location -> location.getFloor() == userFloor)
+                .sorted(Comparator.comparingDouble(location ->
+                        distanceBetweenPoints(userLat, userLon, location.getLatitude(), location.getLongitude())))
+                .limit(k)
+                .collect(Collectors.toList());
+
+        double avgLat = filteredLocations.stream().mapToDouble(LocationResponse::getLatitude).average().orElse(userLat);
+        double avgLon = filteredLocations.stream().mapToDouble(LocationResponse::getLongitude).average().orElse(userLon);
+
+        return new LocationResponse(avgLat, avgLon, userFloor);
+    }
+
+
 
     private double distanceBetweenPoints(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371; // Radius of the earth in kilometers
