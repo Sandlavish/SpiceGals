@@ -568,6 +568,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
+    /**
+     * Initializes and starts the periodic checking of the light level to determine
+     * if the user is indoors or outdoors.
+     */
     private void startIndoorOutdoorDetection() {
         lightLevelHandler = new Handler();
         lightLevelRunnable = new Runnable() {
@@ -579,7 +583,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         };
         lightLevelHandler.post(lightLevelRunnable );
     }
-
+    /**
+     * Updates the status of whether the user is indoors or outdoors based on light sensor readings
+     * and the user's presence within defined building bounds.
+     */
     private void updateIndoorOutdoorStatus() {
 
         // Check if user is within any building bounds
