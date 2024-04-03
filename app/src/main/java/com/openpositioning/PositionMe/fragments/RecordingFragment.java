@@ -548,7 +548,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             mapMatched = mMap.addMarker(new MarkerOptions()
                     .position(position)
                     .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_red_dot_24)))
-                    .title("Nearest Location")
                     .visible(isMatchedMarkerVisible));
             //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
         }
@@ -993,7 +992,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
     private void startBlinkingAnimation() {
         if (getView() == null) return;
-        // Assuming there's a UI element like a TextView or ImageView to blink
+        // find the wifi animation view
         View uiElement = getView().findViewById(R.id.no_wiifi_id);
         if (uiElement != null) {
             // Make the UI element visible
