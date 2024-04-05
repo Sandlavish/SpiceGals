@@ -1355,7 +1355,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             Marker marker = mMap.addMarker(new MarkerOptions()
                     .position(location)
                     .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(),
-                            isOutlierLocation ? R.drawable.ic_baseline_yellow_dot_24 : R.drawable.ic_baseline_purple_dot_24
+                            isOutlierLocation ? R.drawable.ic_baseline_black_dot_24 : R.drawable.ic_baseline_purple_dot_24
                     )))
                     .visible(areWifiMarkersVisible)); // Yellow for outlier, otherwise purple
             wifiMarkers.add(marker);
