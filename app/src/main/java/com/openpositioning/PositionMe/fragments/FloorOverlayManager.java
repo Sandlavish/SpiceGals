@@ -1,5 +1,4 @@
 package com.openpositioning.PositionMe.fragments;
-
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlay;
