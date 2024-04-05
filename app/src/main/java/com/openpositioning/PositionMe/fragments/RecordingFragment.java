@@ -130,6 +130,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private float[] gnssLocation;
     private LatLng PDRPOS;
     private LatLng wifiLocation;
+    private LatLng movingAverageFusedLocation;
 
     //Indoor/Outdoor detection helpers
     private static final float INDOOR_OUTDOOR_THRESHOLD = 1000.0f;
@@ -347,7 +348,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         long currentTimestamp = System.currentTimeMillis();
         long relativeTimestamp = currentTimestamp - sensorFusion.getAbsoluteStartTime();
 
-        if (fusedLocation != null) {
+        if (movingAverageFusedLocation != null) {
             //Log.d("RecordingFragment", "Current Fused Location retrieved: Latitude = "
                   //  + fusedLocation.latitude + ", Longitude = " + fusedLocation.longitude);
 
@@ -357,8 +358,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Build the GNSS sample
             Traj.GNSS_Sample.Builder sampleBuilder = Traj.GNSS_Sample.newBuilder()
                     .setAltitude(currentElevation)
-                    .setLatitude((float) fusedLocation.latitude)
-                    .setLongitude((float) fusedLocation.longitude)
+                    .setLatitude((float) movingAverageFusedLocation.latitude)
+                    .setLongitude((float) movingAverageFusedLocation.longitude)
                     .setProvider("fusion")
                     .setRelativeTimestamp(relativeTimestamp);
 
@@ -560,18 +561,20 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private void performMapMatching() {
         // Assume LocationResponse.getFloor() gives you the current floor number
         // And fusedLocation gives you the current lat and lon
-        double currentLatitude = fusedLocation.latitude;
-        double currentLongitude = fusedLocation.longitude;
-        //Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
-        LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
-        //LocationResponse nearestLocation = mapMatcher.findKNNLocation(currentLatitude, currentLongitude, currentFloor, 3);
-        if (nearestLocation != null) {
-             //Use the getter methods to access the location's latitude and longitude
-           // Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
+        if (movingAverageFusedLocation !=null) {
+            double currentLatitude = movingAverageFusedLocation.latitude;
+            double currentLongitude = movingAverageFusedLocation.longitude;
+            //Log.d("MapMatching", "User Location: Latitude = " + currentLatitude + ", Longitude = " + currentLongitude + ", Floor = " + currentFloor);
+            LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
+            //LocationResponse nearestLocation = mapMatcher.findKNNLocation(currentLatitude, currentLongitude, currentFloor, 3);
+            if (nearestLocation != null) {
+                //Use the getter methods to access the location's latitude and longitude
+                // Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
 
-            addMarkerToMap(nearestLocation.getLatitude(), nearestLocation.getLongitude());
-        } else {
-           // Log.d("MapMatching", "No location found on the given floor.");
+                addMarkerToMap(nearestLocation.getLatitude(), nearestLocation.getLongitude());
+            } else {
+                // Log.d("MapMatching", "No location found on the given floor.");
+            }
         }
     }
 
@@ -641,7 +644,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private void updateIndoorOutdoorStatus() {
 
         // Check if user is within any building bounds
-        boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(fusedLocation) || floorOverlayManager.buildingBoundsLibrary.contains(fusedLocation);
+        boolean isUserInsideAnyBuilding = floorOverlayManager.buildingBounds.contains(movingAverageFusedLocation) || floorOverlayManager.buildingBoundsLibrary.contains(movingAverageFusedLocation);
 
         // Fetch current light level from sensor fusion
         float currentLightLevel = sensorFusion.getSensorValueMap().get(SensorTypes.LIGHT)[0];
@@ -922,7 +925,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
                 // Center the map on the current fused location of the user
                 if (mMap != null) {
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(fusedLocation, 19f));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(movingAverageFusedLocation, 19f));
                 }
             }
         });
@@ -968,16 +971,16 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
 
 
-            if (fusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
-                double errorFusedWifi = calculateDistanceBetweenLatLng(fusedLocation, WifiFilter);
+            if (movingAverageFusedLocation != null && WifiFilter != null && GNSSFilter != null && PDRFilter != null) {
+                double errorFusedWifi = calculateDistanceBetweenLatLng(movingAverageFusedLocation, WifiFilter);
                 TextView errorWifi = getView().findViewById(R.id.tvErrorFusedWifi);
                 errorWifi.setText(String.format("Fused-WiFi Error: %.2f m", errorFusedWifi));
 
-                double errorFusedGnss = calculateDistanceBetweenLatLng(fusedLocation, GNSSFilter);
+                double errorFusedGnss = calculateDistanceBetweenLatLng(movingAverageFusedLocation, GNSSFilter);
                 TextView errorGnss = getView().findViewById(R.id.tvErrorFusedGnss);
                 errorGnss.setText(String.format("Fused-GNSS Error: %.2f m", errorFusedGnss));
 
-                double errorFusedPdr = calculateDistanceBetweenLatLng(fusedLocation, PDRFilter);
+                double errorFusedPdr = calculateDistanceBetweenLatLng(movingAverageFusedLocation, PDRFilter);
                 TextView errorPdr = getView().findViewById(R.id.tvErrorFusedPdr);
                 errorPdr.setText(String.format("Fused-PDR Error: %.2f m", errorFusedPdr));
             }
@@ -988,7 +991,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                 recentFusedLocations.remove(0); // Remove the oldest location to maintain window size
             }
 
-            LatLng movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
+            movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
             trajCords = convertLatLngToMeters(movingAverageFusedLocation, PDRPOS);
 
             updateMapWithFusedPosition(movingAverageFusedLocation);
