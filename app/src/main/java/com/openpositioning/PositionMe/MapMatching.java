@@ -25,7 +25,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 /**
  * Performs map matching by locating the nearest point in a predefined dataset
- * based on the user's current GPS coordinates. This class processes a JSON file
+ * based on the user's current fused coordinates. This class processes a JSON file
  * containing location data, which includes latitude, longitude, and floor
  * information, and parses it into a list of {@link LocationResponse} objects.
  *

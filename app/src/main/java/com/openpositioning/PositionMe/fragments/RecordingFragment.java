@@ -568,6 +568,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
+    /**
+     * Initializes and starts the periodic checking of the light level to determine
+     * if the user is indoors or outdoors.
+     */
     private void startIndoorOutdoorDetection() {
         lightLevelHandler = new Handler();
         lightLevelRunnable = new Runnable() {
@@ -579,7 +583,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         };
         lightLevelHandler.post(lightLevelRunnable );
     }
-
+    /**
+     * Updates the status of whether the user is indoors or outdoors based on light sensor readings
+     * and the user's presence within defined building bounds.
+     */
     private void updateIndoorOutdoorStatus() {
 
         // Check if user is within any building bounds
@@ -973,12 +980,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                         //Toast.makeText(getContext(), "No Wi-Fi coverage detected", Toast.LENGTH_LONG).show();
 
                         // Trigger blinking animation
-                        startBlinkingAnimation();
+                        startWifiBlinkingAnimation();
                         return; // Exit early
                     }
 
                     // Stop blinking animation if valid WiFi location is received
-                    stopBlinkingAnimation();
+                    stopWifiBlinkingAnimation();
 
                   //  Log.d("RecordingFragment", "Received Wi-Fi location.");
                     wifiLocation = new LatLng(locationResponse.getLatitude(), locationResponse.getLongitude());
@@ -994,13 +1001,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     if (getView() == null) {
                         return; // Fragment view is no longer valid, exit early
                     }
-                    startBlinkingAnimation(); // Ensure this method also checks getView() is not null
+                    startWifiBlinkingAnimation(); // Ensure this method also checks getView() is not null
                 });
             }
         });
     }
 
-    private void startBlinkingAnimation() {
+    private void startWifiBlinkingAnimation() {
         if (getView() == null) return;
         // find the wifi animation view
         View uiElement = getView().findViewById(R.id.no_wiifi_id);
@@ -1017,7 +1024,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void stopBlinkingAnimation() {
+    private void stopWifiBlinkingAnimation() {
         if (getView() == null) return;
         View rootView = getView();
         if (rootView != null) {
