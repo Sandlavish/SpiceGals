@@ -58,8 +58,8 @@
 
                 <Button
                     android:id="@+id/startLocationDone"
-                    android:layout_width="161dp"
-                    android:layout_height="60dp"
+                    android:layout_width="123dp"
+                    android:layout_height="55dp"
                     android:backgroundTint="@color/black"
                     android:onClick="onAddTagButtonClicked"
                     android:text="Set"
@@ -74,8 +74,8 @@
 
                 <Spinner
                     android:id="@+id/mapTypeSpinner"
-                    android:layout_width="161dp"
-                    android:layout_height="54dp"
+                    android:layout_width="123dp"
+                    android:layout_height="49dp"
                     android:background="@drawable/spinnerbutton"
                     android:backgroundTint="#B2D81E1E"
                     android:dropDownWidth="match_parent"
