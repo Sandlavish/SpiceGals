@@ -1,6 +1,16 @@
 package com.openpositioning.PositionMe.fragments;
 
 public class ExtendedKalmanFilter {
+
+    /**
+     * Initializes the Extended Kalman Filter with specified dimensions for the state and measurement vectors.
+     * It allocates memory for the state covariance matrix (P), process noise covariance matrix (Q),
+     * measurement noise covariance matrix (R), and the state estimate vector (x).
+     *
+     * @param stateSize The size of the state vector.
+     * @param measurementSize The size of the measurement vector.
+     */
+
     private double[][] P; // State covariance matrix
     private double[][] Q; // Process noise covariance matrix
     private double[][] R; // Measurement noise covariance matrix
@@ -13,6 +23,13 @@ public class ExtendedKalmanFilter {
         x = new double[stateSize];
     }
 
+    /**
+     * Initializes the EKF with an initial state and covariance matrix.
+     *
+     * @param initialState Initial state estimate vector.
+     * @param initialCovariance Initial state covariance matrix.
+     */
+
     // Initialize the EKF with initial state and covariance
     public void initialize(double[] initialState, double[][] initialCovariance) {
         System.arraycopy(initialState, 0, x, 0, initialState.length);
@@ -20,6 +37,13 @@ public class ExtendedKalmanFilter {
             System.arraycopy(initialCovariance[i], 0, P[i], 0, P[i].length);
         }
     }
+
+    /**
+     * Predicts the next state and covariance using the process model and updates the state estimate and covariance.
+     *
+     * @param F The state transition model matrix.
+     * @param Q The process noise covariance matrix (overrides the class variable Q).
+     */
 
     // Predict the next state and covariance
     public void predict(double[][] F, double[][] Q) {
@@ -30,6 +54,14 @@ public class ExtendedKalmanFilter {
         double[][] FP = MatrixOperations.multiply(F, P);
         P = MatrixOperations.add(MatrixOperations.multiply(FP, MatrixOperations.transpose(F)), Q);
     }
+
+    /**
+     * Updates the state estimate with a new measurement using the measurement model.
+     *
+     * @param z The measurement vector.
+     * @param H The measurement model matrix.
+     * @param R The measurement noise covariance matrix (overrides the class variable R).
+     */
 
     // Update the state estimate with a new measurement
     public void update(double[] z, double[][] H, double[][] R) {
@@ -52,6 +84,15 @@ public class ExtendedKalmanFilter {
         double[][] I_KH = MatrixOperations.subtract(I, KH);
         P = MatrixOperations.multiply(I_KH, P);
     }
+
+
+    /**
+     * The state transition model function f(x) that predicts the next state based on the current state.
+     * This should be customized to fit your specific system's dynamics.
+     *
+     * @param x The current state vector.
+     * @return The predicted state vector.
+     */
 
     // The state transition model function
     private double[] f(double[] x) {
@@ -79,6 +120,14 @@ public class ExtendedKalmanFilter {
         return new double[]{newLat, newLon, newV_n, newV_e};
     }
 
+
+    /**
+     * The observation model function h(x) that maps the true state space into the observed space.
+     * This should be defined according to your system's measurement process.
+     *
+     * @param x The current state vector.
+     * @return The expected measurement vector given the current state.
+     */
     // The observation model function (needs to be defined for your system)
     private double[] h(double[] x) {
         // Extract the position components from the state vector
@@ -90,13 +139,23 @@ public class ExtendedKalmanFilter {
         return new double[]{observedLat, observedLon};
     }
 
-    // Getter for the state estimate
     public double[] getStateEstimate() {
+        /**
+         * Returns the current state estimate vector.
+         *
+         * @return The current state estimate vector.
+         */
+        // Getter for the state estimate
         return x;
     }
 
     // Getter for the state covariance matrix
     public double[][] getStateCovariance() {
+        /**
+         * Returns the current state covariance matrix.
+         *
+         * @return The current state covariance matrix.
+         */
         return P;
     }
 }

@@ -1,7 +1,17 @@
 package com.openpositioning.PositionMe.fragments;
 
+/**
+ * Provides a collection of static methods for common matrix operations,
+ * including addition, subtraction, multiplication, and finding the inverse of a matrix.
+ */
 public class MatrixOperations {
 
+    /**
+     * Adds two matrices together.
+     * @param A First matrix.
+     * @param B Second matrix.
+     * @return The result of adding A and B.
+     */
     public static double[][] add(double[][] A, double[][] B) {
         int rows = A.length;
         int cols = A[0].length;
@@ -16,6 +26,12 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Subtracts matrix B from matrix A.
+     * @param A First matrix.
+     * @param B Second matrix.
+     * @return The result of subtracting B from A.
+     */
     public static double[][] subtract(double[][] A, double[][] B) {
         int rows = A.length;
         int cols = A[0].length;
@@ -30,6 +46,12 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Subtracts vector b from vector a.
+     * @param a First vector.
+     * @param b Second vector.
+     * @return The result of subtracting b from a.
+     */
     public static double[] subtractVectors(double[] a, double[] b) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("Vector dimensions must match for subtraction");
@@ -42,6 +64,12 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Adds two vectors together.
+     * @param a First vector.
+     * @param b Second vector.
+     * @return The result of adding a and b.
+     */
     public static double[] addVectors(double[] a, double[] b) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("Vector dimensions must match for addition");
@@ -54,6 +82,12 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Multiplies a matrix by a vector.
+     * @param matrix The matrix.
+     * @param vector The vector.
+     * @return The result of multiplying the matrix by the vector.
+     */
     public static double[] multiplyMatrixAndVector(double[][] matrix, double[] vector) {
         if (matrix[0].length != vector.length) {
             throw new IllegalArgumentException("Matrix columns and vector size must match for multiplication");
@@ -68,6 +102,12 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Multiplies two matrices together.
+     * @param A First matrix.
+     * @param B Second matrix.
+     * @return The result of multiplying A by B.
+     */
     public static double[][] multiply(double[][] A, double[][] B) {
         int aRows = A.length;
         int aCols = A[0].length;
@@ -85,6 +125,11 @@ public class MatrixOperations {
         return result;
     }
 
+    /**
+     * Transposes a matrix.
+     * @param matrix The matrix to transpose.
+     * @return The transposed matrix.
+     */
     public static double[][] transpose(double[][] matrix) {
         int rows = matrix.length;
         int cols = matrix[0].length;
@@ -99,6 +144,11 @@ public class MatrixOperations {
         return transposed;
     }
 
+    /**
+     * Finds the inverse of a square matrix using Gaussian elimination.
+     * @param matrix The matrix to invert.
+     * @return The inverse of the matrix.
+     */
     public static double[][] inverse(double[][] matrix) {
         int n = matrix.length;
         double[][] x = new double[n][n];
@@ -129,11 +179,14 @@ public class MatrixOperations {
         return x;
     }
 
-    // Method to carry out the partial-pivoting Gaussian
-    // elimination.  Here index[] stores pivoting order.
+    /**
+     * Performs partial-pivoting Gaussian elimination on a matrix.
+     * @param matrix The matrix to be processed.
+     * @param index The array that stores the order of pivoting.
+     */
     public static void gaussian(double[][] matrix, int[] index) {
         int n = index.length;
-        double[] c = new double[n];
+        double[] c = new double[n]; // Scaling factor
 
         // Initialize the index
         for (int i = 0; i < n; ++i) index[i] = i;
@@ -178,7 +231,11 @@ public class MatrixOperations {
         }
     }
 
-    // Method to generate identity matrix
+    /**
+     * Generates an identity matrix of a given size.
+     * @param size The size of the identity matrix.
+     * @return An identity matrix of the specified size.
+     */
     public static double[][] identityMatrix(int size) {
         double[][] identity = new double[size][size];
 

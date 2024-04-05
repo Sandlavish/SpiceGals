@@ -6,14 +6,13 @@ import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Polyline;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 
 public class FloorOverlayManager {
+    // Variables to control visibility and manual selection of floor overlays
     public boolean manualSelectionActive = false;
     public static boolean groundFloorVisible;
-
     public static boolean librarygroundfloorvisible;
     public static boolean firstFloorVisible;
     public static boolean libraryfirstfloorvisible;
@@ -24,20 +23,15 @@ public class FloorOverlayManager {
     public static boolean isUserNearGroundFloor;
     public static boolean isuserNearGroundFloorLibrary;
 
+    // Google Maps instance and overlay objects for each floor
     private GoogleMap mMap;
     public static LatLng southwestcornerNucleus;
     public static LatLng northeastcornerNucleus;
-
     public static LatLng southwestcornerLibrary;
     public static LatLng northeastcornerLibrary;
-
     private Floor userSelectedFloor = null; // null indicates no floor has been manually selected
 
-    private boolean userIsOnFirstFloor = false; // Default to ground floor
-    private boolean userIsOnGroundFloor = false; //Ground floor is only visible when we are near the building
-    private boolean userIsOnSecondFloor = false; // Default to ground floor
-    private boolean userIsOnThirdFloor = false; // Default to ground floor
-
+    // GroundOverlay instances for each floor in the nucleus and the library
     public GroundOverlay groundflooroverlay;
     public GroundOverlay firstflooroverlay;
     public GroundOverlay secondflooroverlay;
@@ -47,9 +41,10 @@ public class FloorOverlayManager {
     public GroundOverlay librarysecondflooroverlay;
     public GroundOverlay librarythirdflooroverlay;
 
-    public static LatLngBounds buildingBounds; //building bounds for the Nucleus
+    // LatLngBounds for the Nucleus and the Library buildings
+    public static LatLngBounds buildingBounds; // Building bounds for the Nucleus
+    public static LatLngBounds buildingBoundsLibrary; // Building bounds for the Library
 
-    public static LatLngBounds buildingBoundsLibrary; //building bounds for the Library
     private MapManager mapManager;
     private SensorFusion sensorFusion;
 
@@ -60,36 +55,46 @@ public class FloorOverlayManager {
 
     // Current floor level for comparison during updates
     private Floor currentFloor = Floor.GROUND;
+    /**
+     * Constructor for FloorOverlayManager.
+     * @param mMap The GoogleMap instance.
+     * @param mapManager Instance of the custom MapManager class.
+     * @param sensorFusion Instance of SensorFusion for accessing sensor data.
+     */
 
     public FloorOverlayManager(GoogleMap mMap, MapManager mapManager, SensorFusion sensorFusion) {
+
         this.mMap = mMap;
         this.mapManager = mapManager;
         this.sensorFusion = sensorFusion;
-        checkAndUpdateFloorOverlay();
+        checkAndUpdateFloorOverlay(); //To Update the map and display the current floor based on the elevation
     }
 
+    /**
+     * Allows the user to manually select a floor, overriding the automatic floor detection.
+     * @param floor The Floor enum representing the user-selected floor.
+     */
     public void setUserSelectedFloor(Floor floor) {
         this.userSelectedFloor = floor;
         this.manualSelectionActive = (floor != null); // Enable manual selection if a floor is selected, disable otherwise for automatic detection
         updateFloorOverlaysBasedOnUserSelection();
     }
 
-    private void updateFloorOverlays(float elevation) {
-        // Automatic floor overlay update logic based on elevation
-        Floor targetFloor = determineFloorByElevation(elevation);
-        setFloorVisibility(targetFloor);
-        // Update overlays only if the floor has changed
-        if (targetFloor != currentFloor) {
-            currentFloor = targetFloor;
-            setFloorVisibility(targetFloor);
-        }
-    }
+    /**
+     * Updates the floor overlays based on the user's manual selection.
+     */
 
     private void updateFloorOverlaysBasedOnUserSelection() {
-        // Manual floor overlay update logic
+
         setFloorVisibility(userSelectedFloor);
     }
 
+
+
+    /**
+     * Sets the visibility of floor overlays based on the specified floor.
+     * @param floor The floor whose overlay should be visible.
+     */
     private void setFloorVisibility(Floor floor) {
 
         if (floor == null) {
@@ -124,7 +129,9 @@ public class FloorOverlayManager {
                 break;
         }
     }
-
+    /**
+     * Checks if the user is within the bounds of the building and updates the floor overlay accordingly.
+     */
     public void checkUserInbounds(){
         float[] gnssLocation = sensorFusion.getGNSSLatitude(false); // Assume you have a method to get the current user location as a LatLng
         LatLng gnssLatLng = new LatLng(gnssLocation[0], gnssLocation[1]);
@@ -134,9 +141,11 @@ public class FloorOverlayManager {
         }
     }
 
-
-    // This method could be called periodically or in response to specific events, such as a significant change in elevation
+    /**
+     * Periodically or in response to specific events, checks and updates the floor overlay based on the current elevation or user selection.
+     */
     public void checkAndUpdateFloorOverlay() {
+
         if (!manualSelectionActive) {
             // Automatic mode
             float currentElevation = sensorFusion.getElevation();
@@ -150,7 +159,14 @@ public class FloorOverlayManager {
 
 
     // Helper method to determine the floor based on elevation
+
+    /**
+     * Determines the floor level based on the current elevation.
+     * @param elevation The current elevation of the user.
+     * @return The floor level as a Floor enum.
+     */
     private Floor determineFloorByElevation(float elevation) {
+
         if (elevation <= GROUND_FLOOR_MAX_ELEVATION) {
             librarygroundfloorvisible=true;
             groundFloorVisible = true;
@@ -171,11 +187,18 @@ public class FloorOverlayManager {
     }
 
 
+    /**
+     * Sets up the ground overlays for the nucleus and library floors.
+     */
     public void setupGroundOverlays() {
+
         defineOverlayBounds();
         createAndAddOverlays();
     }
 
+    /**
+     * Creates and adds overlays for each floor in the nucleus and the library.
+     */
     private void createAndAddOverlays() {
         // Nucleus Overlays
         groundflooroverlay = addOverlay(R.drawable.nucleusg, buildingBounds);
@@ -192,7 +215,15 @@ public class FloorOverlayManager {
     }
 
     // Method to adjust the visibility of overlays
+    /**
+     * Adjusts the visibility of overlays for each floor.
+     * @param ground Visibility for the ground floor overlay.
+     * @param first Visibility for the first floor overlay.
+     * @param second Visibility for the second floor overlay.
+     * @param third Visibility for the third floor overlay.
+     */
     public void setFloorVisibility(boolean ground, boolean first, boolean second, boolean third) {
+
         if (isUserNearGroundFloor || isuserNearGroundFloorLibrary) {
             if (groundflooroverlay != null) groundflooroverlay.setVisible(ground);
             if (firstflooroverlay != null) firstflooroverlay.setVisible(first);
@@ -205,7 +236,11 @@ public class FloorOverlayManager {
         }
     }
 
+    /**
+     * Defines the overlay bounds for the nucleus and the library buildings.
+     */
     private void defineOverlayBounds() {
+
         // Initialize LatLng for corners
         southwestcornerNucleus = new LatLng(55.92278, -3.17465);
         northeastcornerNucleus = new LatLng(55.92335, -3.173842);
@@ -217,13 +252,24 @@ public class FloorOverlayManager {
         buildingBoundsLibrary = new LatLngBounds(southwestcornerLibrary, northeastcornerLibrary);
     }
 
+    /**
+     * Adds an overlay to the map for a specific resource and bound.
+     * @param resourceId The drawable resource ID for the overlay image.
+     * @param bounds The bounds where the overlay should be applied.
+     * @return The GroundOverlay instance added to the map.
+     */
 
     public GroundOverlay addOverlay(int resourceId, LatLngBounds bounds) {
+
         return mMap.addGroundOverlay(new GroundOverlayOptions()
                 .image(BitmapDescriptorFactory.fromResource(resourceId))
                 .positionFromBounds(bounds)
                 .transparency(0.5f)); // Adjust transparency as needed
     }
+
+    /**
+     * Hides all overlays.
+     */
     public void hideAllOverlays() {
         setFloorVisibility(false, false, false, false);
         if (groundflooroverlay != null) groundflooroverlay.setVisible(false);
@@ -235,8 +281,6 @@ public class FloorOverlayManager {
         if (librarysecondflooroverlay != null) librarysecondflooroverlay.setVisible(false);
         if (librarythirdflooroverlay != null) librarythirdflooroverlay.setVisible(false);
     }
-
-
 
     // Floor enumeration to represent different floor levels
     public static enum Floor {

@@ -7,14 +7,13 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
+
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
@@ -23,7 +22,7 @@ import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CompoundButton;
+
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
@@ -34,8 +33,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.widget.SwitchCompat;
+
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -181,7 +179,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private float distance;
     private float previousPosX;
     private float previousPosY;
-
+    private Polyline pdrPath; // Field to hold the PDR path
     private GoogleMap mMap;
     private Marker ekfmarker;
     private Marker mapMatched;
@@ -378,6 +376,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+
+    /**
+     * Initializes the map by setting up a SupportMapFragment and calling getMapAsync to prepare the map for use.
+     */
     private void initializeMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
 
@@ -386,6 +388,14 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
         PDRPOS = StartLocationFragment.StartLocation;
     }
+
+
+    /**
+     * Callback method for when the GoogleMap is ready to be used. Sets the initial map type,
+     * enables UI settings, and configures initial map components like markers and polylines.
+     *
+     * @param googleMap The GoogleMap instance ready for use.
+     */
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -412,6 +422,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
+    /**
+     * Sets up initial components for the map such as polylines for displaying the user's trajectory.
+     * Initializes default GNSS location to be used for the map's camera positioning.
+     */
 
     private void setupMapComponents() {
         userTrajectory = mMap.addPolyline(new PolylineOptions().width(7).color(Color.RED));
@@ -419,6 +433,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         gnssLocation = sensorFusion.getGNSSLatitude(false);
         filterSetup(gnssLocation);
     }
+
+    /**
+     * Handles new location updates by updating GNSS and fused location markers on the map.
+     * Also manages the visibility of floor overlays based on the user's current location.
+     */
 
     private void handleLocationUpdates() {
         if (gnssLocation == null) {
@@ -446,6 +465,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         floorOverlayManager.checkAndUpdateFloorOverlay();
     }
 
+    /**
+     * Converts a vector drawable resource into a Bitmap. Useful for customizing map marker icons.
+     *
+     * @param context The application context.
+     * @param vectorResId The resource ID of the vector drawable.
+     * @return A bitmap representation of the vector drawable.
+     */
     private Bitmap getBitmapFromVector(Context context, int vectorResId) {
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
         Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
@@ -455,6 +481,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return bitmap;
     }
 
+
+    /**
+     * Processes the provided GNSS location through a Kalman filter to obtain a smoother, more accurate location estimate.
+     *
+     * @param gnssLocation An array containing the latitude and longitude from the GNSS sensor.
+     * @return A LatLng object representing the filtered location.
+     */
     private LatLng processLocationWithKalmanFilter(float[] gnssLocation) {
         double latitude = gnssLocation[0];
         double longitude = gnssLocation[1];
@@ -496,6 +529,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         lastUpdateTime = System.currentTimeMillis();
         return filteredLocation_ekf;
     }
+
+
+    /**
+     * Predicts the user's next location based on the current state estimate and the state transition model.
+     * This method should be called after each new sensor update to advance the state of the Kalman filter.
+     */
     private void predictUserLocation() {
         // Calculate the time step (dt) in seconds
         long currentTime = System.currentTimeMillis();
@@ -518,8 +557,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * from the fusedLocation variable and invokes the mapMatching's findNearestLocation method
      * to locate the closest point based on the user's current floor.
      */
-
-
     private void performMapMatching() {
         // Assume LocationResponse.getFloor() gives you the current floor number
         // And fusedLocation gives you the current lat and lon
@@ -537,7 +574,14 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
            // Log.d("MapMatching", "No location found on the given floor.");
         }
     }
-    //method to add the mapmatched marker to the map
+
+    /**
+     * Adds a marker to the map at the specified latitude and longitude coordinates.
+     * This can be used to indicate points of interest or other important locations on the map.
+     *
+     * @param lat The latitude of the marker's position.
+     * @param lon The longitude of the marker's position.
+     */
     private void addMarkerToMap(double lat, double lon) {
         if (mMap != null) {
             // Remove the previous marker if it exists
@@ -553,6 +597,14 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+
+    /**
+     * Updates the map view to display the new and filtered locations of the user.
+     * Typically used after location data has been processed to provide visual feedback to the user.
+     *
+     * @param newLocation The new location of the user.
+     * @param filteredLocation_ekf The location of the user after being filtered, e.g., through a Kalman filter.
+     */
     private void updateMap(LatLng newLocation, LatLng filteredLocation_ekf) {
         if (ekfmarker == null) {
             ekfmarker = mMap.addMarker(new MarkerOptions()
@@ -581,6 +633,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         };
         lightLevelHandler.post(lightLevelRunnable );
     }
+
     /**
      * Updates the status of whether the user is indoors or outdoors based on light sensor readings
      * and the user's presence within defined building bounds.
@@ -609,6 +662,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
 
+    /**
+     * Initializes periodic updates for GNSS location data.
+     * This method sets up a handler and runnable task to fetch GNSS data at regular intervals.
+     */
     private void setupGnssUpdates() {
         // Initialize the Handler and Runnable for GNSS updates
         gnssUpdateHandler = new Handler(Looper.getMainLooper());
@@ -636,6 +693,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
         };
     }
+
+    /**
+     * Sets up the spinner for selecting the map type in the UI.
+     * Allows the user to choose between different map presentations such as satellite or terrain.
+     *
+     * @param view The view containing the spinner.
+     */
 
     private void setupMapTypeSpinner(View view) {
         Spinner mapTypeSpinner = view.findViewById(R.id.mapTypeSpinner);
@@ -667,6 +731,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
 
+    /**
+     * Returns the GoogleMap map type constant based on the index of the user's selection in the map type spinner.
+     *
+     * @param index The index of the selected item in the spinner.
+     * @return The GoogleMap map type constant corresponding to the selected item.
+     */
     private int getMapTypeFromIndex(int index) {
         switch (index) {
             case 0: return GlobalVariables.getMapType();
@@ -943,6 +1013,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     };
 
+    /**
+     * Updates the PDR (Pedestrian Dead Reckoning) position on the map. This method uses the latest PDR coordinates
+     * to update the user's estimated position on the map.
+     */
 
     private void updatePDRPosition() {
         // Assuming getPDRCoordinates() returns the latest PDR coordinates as float[2] with x, y values
@@ -964,7 +1038,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      Also checks if the wifi list is empty or the server response is null and notifies the user that there is no wifi coverage
      @author Michalis Voudaskas
      */
-
     private void fetchWifiLocationFromServer() {
         Executors.newSingleThreadExecutor().submit(() -> {
             try {
@@ -1006,6 +1079,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+
+    /**
+     * Starts a blinking animation to indicate that there is no WiFi coverage in the user's current location.
+     * This visual feedback can alert users to potential issues with indoor positioning.
+     */
+
     private void startWifiBlinkingAnimation() {
         if (getView() == null) return;
         // find the wifi animation view
@@ -1023,6 +1102,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    /**
+     * Stops the blinking animation that indicates a lack of WiFi coverage. This method should be called when
+     * the user moves to a location with sufficient WiFi signal for indoor positioning.
+     */
     private void stopWifiBlinkingAnimation() {
         if (getView() == null) return;
         View rootView = getView();
@@ -1033,6 +1116,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
     // check if the most recent wifi is an outlier by comparing with the average of the last 5 wifi positions
+    /**
+     * Determines if a newly acquired location is an outlier compared to recent location data.
+     * This method can be used to filter out inaccurate or spurious location updates.
+     *
+     * @param newLocation The new location to evaluate.
+     * @return True if the location is considered an outlier; false otherwise.
+     */
     private boolean isOutlier(LatLng newLocation) {
         //consider a location an outlier if it's too far from the average of recent locations
         if (recentWifiLocations.isEmpty()) {
@@ -1044,6 +1134,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distanceToAverage > OUTLIER_THRESHOLD_METERS;
     }
 
+    /**
+     * Updates the list of recent WiFi locations with a new location. This method maintains a rolling list
+     * of the last N WiFi locations for processing or analysis.
+     *
+     * @param newLocation The new WiFi location to add to the list.
+     */
     //store the last 5 wifi positions
     private void updateWifiLocations(LatLng newLocation) {
         recentWifiLocations.add(newLocation);
@@ -1052,6 +1148,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    /**
+     * Updates the list of recent PDR locations with a new location. This method maintains a rolling list
+     * of the last N PDR locations for processing or analysis.
+     *
+     * @param newLocation The new PDR location to add to the list.
+     */
     //store the last 5 pdr positions
     private void updatePDRLocations(LatLng newLocation) {
         recentPDRLocations.add(newLocation);
@@ -1059,6 +1161,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             recentPDRLocations.remove(0); // Keep the list size fixed
         }
     }
+
+    /**
+     * Updates the list of recent GNSS locations with a new location. This method maintains a rolling list
+     * of the last N GNSS locations for processing or analysis.
+     *
+     * @param newLocation The new GNSS location to add to the list.
+     */
 
     //store the last 5 gnss positions
     private void updateGnssLocations(LatLng newLocation) {
@@ -1068,6 +1177,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    /**
+     * Calculates the average location from a list of LatLng objects. This can be used to smooth out location
+     * data by averaging over a set of recent locations.
+     *
+     * @param locations The list of locations to average.
+     * @return The average location as a LatLng object.
+     */
     //get the average positions from latlng
     private LatLng getAverageLocation(List<LatLng> locations) {
         double sumLat = 0;
@@ -1079,7 +1195,18 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return new LatLng(sumLat / locations.size(), sumLng / locations.size());
     }
 
-    // Distance between 2 latlongs
+
+
+    /**
+     * Calculates the geographical distance between two points on the Earth's surface specified by their latitude and longitude.
+     * This method uses the 'Haversine' formula to determine the shortest distance over the earth's surface, giving an 'as-the-crow-flies'
+     * distance between the points (ignoring any hills, valleys, or other potential obstacles).
+     *
+     * @param pos1 The first position as a LatLng object containing latitude and longitude in degrees.
+     * @param pos2 The second position as a LatLng object containing latitude and longitude in degrees.
+     * @return The distance between the two points in meters.
+     */
+
     private double calculateDistanceBetweenLatLng(LatLng pos1, LatLng pos2) {
         final int R = 6371; // Radius of the earth in kilometers
 
@@ -1101,8 +1228,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return distance;
     }
 
-
-    //haversine formula to get the distance between 2 latlongs
+    /**
+     * Converts relative PDR coordinates in meters to an absolute LatLng position based on a starting LatLng.
+     * This method is used to translate PDR movement data into geographic coordinates.
+     *
+     * @param pdrCoordinates An array containing the relative x (east-west) and y (north-south) PDR coordinates in meters.
+     * @param startLatLng The starting LatLng position from which the PDR movement is measured.
+     * @return A LatLng object representing the new absolute position after applying the PDR movement.
+     *
+     *
+     * Haversine formula to get the distance between 2 latlongs
+     */
     private LatLng convertMetersToLatLng(float[] pdrCoordinates, LatLng startLatLng) {
         // Constants
         final double metersInOneDegreeLatitude = 111111.0;
@@ -1118,6 +1254,20 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         return new LatLng(newLat, newLon);
     }
+
+
+    /**
+     * Converts the difference between two geographic locations (current and start) from degrees to meters.
+     * This method calculates the north-south (latitude) and east-west (longitude) distances between the
+     * current location and a starting location, returning these distances as X (east-west) and Y (north-south)
+     * coordinates in meters. This conversion is useful for applications requiring distance measurements or
+     * path plotting in a metric space based on GPS coordinates.
+     *
+     * @param currentLatLng The current geographic location as a LatLng object.
+     * @param startLatLng The starting geographic location as a LatLng object, used as the reference point for the calculation.
+     * @return A float array containing the X and Y coordinates in meters, where the X coordinate represents the east-west distance
+     *         (longitude) and the Y coordinate represents the north-south distance (latitude) from the starting point.
+     */
 
     private float[] convertLatLngToMeters(LatLng currentLatLng, LatLng startLatLng) {
         // Constants
@@ -1135,9 +1285,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         return new float[]{(float) deltaLonInMeters, (float) deltaLatInMeters};
     }
 
-
-    private Polyline pdrPath; // Field to hold the PDR path
-
+    /**
+     * Updates the polyline path on the map with a new position. This method is used to visually represent
+     * the user's movement over time as a continuous line on the map.
+     *
+     * @param newPosition The new position to add to the path.
+     */
     private void updatePath(LatLng newPosition) {
         if (mMap != null) {
             if (pdrPath == null) {
@@ -1153,7 +1306,11 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    //method to display the last 5 positions of pdr gnss and wifi @author: Michalis Voudaskas
+    /**
+     * Updates the map with markers representing recent locations from GNSS, WiFi, and PDR data sources.
+     * This method helps visualize the distribution and accuracy of different location data sources.
+     * Method to display the last 5 positions of pdr gnss and wifi @author: Michalis Voudaskas
+     */
     private void updateLocationMarkers() {
         // Clear previous markers
         for (Marker marker : gnssMarkers) {
@@ -1202,7 +1359,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    // Filter Setup Method for Particle Filter
+    /**
+     * Initializes the Particle Filter with a starting location. This method sets up the particle filter
+     * for use in fusing various location data sources into a single, more accurate location estimate.
+     *
+     * @param startloc An array containing the starting latitude and longitude.
+     */
     public void filterSetup(float[] startloc) {
         if (startloc != null) {
             double latitude = startloc[0];
@@ -1212,8 +1374,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             particleFilter = new ParticleFilter(50, filterstartloc);
         }
     }
-
-    //Method to update Particle Filter to get an estimated position
+    /**
+     * Updates the Particle Filter with new positions from different data sources and returns the estimated
+     * fused location. This method integrates GNSS, PDR, and WiFi data to improve location accuracy.
+     *
+     * @param predictPos The predicted next position, typically from PDR data.
+     * @param UpdatePos1 The first update position, which could be from GNSS or WiFi data.
+     * @param UpdatePos2 The second update position, providing an additional data point for the filter.
+     * @return A LatLng object representing the fused location estimate from the particle filter.
+     */
     private LatLng updateParticleFilterPositions(LatLng predictPos, LatLng UpdatePos1, LatLng UpdatePos2) {
         if (particleFilter != null) {
             // Assuming a small measurement noise for demonstration. Adjust based on actual data quality.
@@ -1226,12 +1395,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             // Optionally, get and use the fused position
             LatLng fusedPosition = particleFilter.getFusedPosition();
             return fusedPosition;
-//            updateMapWithFusedPosition(fusedPosition);
         }
         return null;
     }
 
-    // Updates the map with the fused position
+    /**
+     * Updates the map to display the fused location obtained from the particle filter. This method may
+     * include visual cues such as changing the marker color or style to differentiate the fused location
+     * from raw data points.
+     *
+     * @param position The fused position to display on the map.
+     */
     private void updateMapWithFusedPosition(LatLng position) {
 
         if (position == null) {
@@ -1261,9 +1435,8 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     }
 
     /**
-     * Displays a blinking red dot to signify an ongoing recording.
-     *
-     * @see Animation for makin the red dot blink.
+     * Displays a blinking red dot on the UI to indicate that recording is in progress.
+     * This visual cue helps users understand that their location is being actively tracked.
      */
     private void blinkingRecording() {
         //Initialise Image View
@@ -1303,7 +1476,12 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         startIndoorOutdoorDetection();
     }
 
-    //display the user the option to choose which markers they want to see @author: Michalis Voudaskas
+    /**
+     * Displays a dialog allowing the user to toggle the visibility of different types of markers on the map.
+     * This provides a way for users to customize the map view according to their preferences.
+     * @author: Michalis Voudaskas
+     */
+
     private void showToggleMarkersDialog() {
         // Current visibility states
         boolean[] checkedItems = {areGnssMarkersVisible, areWifiMarkersVisible, arePDRMarkersVisible, isEKFMarkerVisible, isMatchedMarkerVisible};
@@ -1335,7 +1513,10 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         dialog.show();
     }
 
-    //adjust the marker visibility based on the user's preference
+    /**
+     * Adjusts the visibility of various markers on the map based on the user's preferences. This method is
+     * typically called after the user makes selections in the toggle markers dialog.
+     */
     private void toggleMarkerVisibility() {
         for (Marker marker : gnssMarkers) {
             marker.setVisible(areGnssMarkersVisible);
@@ -1348,6 +1529,13 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+
+    /**
+     * Lifecycle callback method that's called when the Fragment is no longer visible.
+     * This method ensures that any background tasks or Runnable tasks that were scheduled
+     * during the lifecycle of the Fragment are properly cleaned up and stopped to prevent
+     * any memory leaks or unnecessary resource usage when the Fragment is not in use.
+     */
     @Override
     public void onStop() {
         super.onStop();
