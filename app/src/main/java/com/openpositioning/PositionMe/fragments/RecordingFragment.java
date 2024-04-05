@@ -706,32 +706,42 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         floorSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                FloorOverlayManager.Floor selectedFloor;
-                switch (position + 1) {
-                    case 1:
-                        floorOverlayManager.checkAndUpdateFloorOverlay();
-                    case 2:
-                        selectedFloor = FloorOverlayManager.Floor.GROUND;
+                if (position == 0) {
+                    // The first item is selected, switch to automatic mode
+                    floorOverlayManager.manualSelectionActive = false;
+                } else {
+                    // A specific floor is selected, switch to manual mode
+                    floorOverlayManager.manualSelectionActive = true;
+                    FloorOverlayManager.Floor selectedFloor = null;
+                    switch (position) {
+                        case 1: // "Ground Floor"
+                            selectedFloor = FloorOverlayManager.Floor.GROUND;
+                            break;
+                        case 2: // "First Floor"
+                            selectedFloor = FloorOverlayManager.Floor.FIRST;
+                            break;
+                        case 3: // "Second Floor"
+                            selectedFloor = FloorOverlayManager.Floor.SECOND;
+                            break;
+                        case 4: // "Third Floor"
+                            selectedFloor = FloorOverlayManager.Floor.THIRD;
+                            break;
+                    }
+                    if (selectedFloor != null) {
                         floorOverlayManager.setUserSelectedFloor(selectedFloor);
-                        break;
-                    case 3:
-                        selectedFloor = FloorOverlayManager.Floor.FIRST;
-                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
-                        break;
-                    case 4:
-                        selectedFloor = FloorOverlayManager.Floor.SECOND;
-                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
-                        break;
-                    case 5:
-                        selectedFloor = FloorOverlayManager.Floor.THIRD;
-                        floorOverlayManager.setUserSelectedFloor(selectedFloor);
-                        break;
+                    }
                 }
+                floorOverlayManager.checkAndUpdateFloorOverlay();  // Trigger update to apply changes
             }
+
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                // Optionally, handle the case when nothing is selected, e.g., revert to automatic mode
+                floorOverlayManager.manualSelectionActive = false;
+                floorOverlayManager.checkAndUpdateFloorOverlay();
             }
         });
+
 
         // Setup GNSS updates
         setupGnssUpdates();

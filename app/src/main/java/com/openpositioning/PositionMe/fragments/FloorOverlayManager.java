@@ -91,11 +91,18 @@ public class FloorOverlayManager {
     }
 
     private void setFloorVisibility(Floor floor) {
+
+        if (floor == null) {
+            // Handle case where no floor is selected, possibly by hiding all overlays or showing a default view
+            return;  // Exit the method early
+        }
         // Hide all overlays initially
         setFloorVisibility(false, false, false, false);
 
         // Show only the selected floor overlay
         switch (floor) {
+            case AUTOMATIC:
+                break;
             case GROUND:
                 if (groundflooroverlay != null) groundflooroverlay.setVisible(true);
                 if (librarygroundflooroverlay != null) librarygroundflooroverlay.setVisible(true);
@@ -131,15 +138,13 @@ public class FloorOverlayManager {
     // This method could be called periodically or in response to specific events, such as a significant change in elevation
     public void checkAndUpdateFloorOverlay() {
         if (!manualSelectionActive) {
-            // Automatic floor detection based on elevation
+            // Automatic mode
             float currentElevation = sensorFusion.getElevation();
-            determineFloorByElevation(currentElevation);
-            updateFloorOverlays(currentElevation);
-
-
+            Floor targetFloor = determineFloorByElevation(currentElevation);
+            setFloorVisibility(targetFloor);  // Make sure this method is adapted to work in both automatic and manual modes
         } else {
-            // Manual floor selection
-            updateFloorOverlaysBasedOnUserSelection();
+            // Manual mode
+            setFloorVisibility(userSelectedFloor);  // Assuming this method properly sets visibility for the selected floor
         }
     }
 
@@ -235,6 +240,6 @@ public class FloorOverlayManager {
 
     // Floor enumeration to represent different floor levels
     public static enum Floor {
-        GROUND, FIRST, SECOND, THIRD, AUTOMATIC
+        AUTOMATIC, GROUND, FIRST, SECOND, THIRD
     }
 }
