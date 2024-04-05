@@ -118,7 +118,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     private Polyline userTrajectory;
 
     private long lastUpdateTime = 0;
-
+    public static float [] trajCords;
     // Handlers/Runnables Refresh Tasks
     private Handler gnssUpdateHandler;
     private Runnable gnssUpdateTask;
@@ -251,6 +251,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         trajectory = Traj.Trajectory.newBuilder();
         mapMatcher = new MapMatching(getContext());
 
+        trajCords = new float[2];
 
         // Initialize the Extended Kalman Filter
         int stateSize = 4; // For [lat, lon, v_n, v_e]
@@ -921,6 +922,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
 
             LatLng movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
+            trajCords = convertLatLngToMeters(movingAverageFusedLocation, PDRPOS);
 
             updateMapWithFusedPosition(movingAverageFusedLocation);
             updatePath(movingAverageFusedLocation);
@@ -1119,6 +1121,23 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
 
         return new LatLng(newLat, newLon);
     }
+
+    private float[] convertLatLngToMeters(LatLng currentLatLng, LatLng startLatLng) {
+        // Constants
+        final double metersInOneDegreeLatitude = 111111.0;
+
+        // Calculate the change in degrees
+        double deltaLat = currentLatLng.latitude - startLatLng.latitude;
+        double deltaLon = currentLatLng.longitude - startLatLng.longitude;
+
+        // Convert the change in degrees to meters
+        double deltaLatInMeters = deltaLat * metersInOneDegreeLatitude;
+        double deltaLonInMeters = deltaLon * (metersInOneDegreeLatitude * Math.cos(Math.toRadians(startLatLng.latitude)));
+
+        // Return the X, Y coordinates in meters as a float array
+        return new float[]{(float) deltaLonInMeters, (float) deltaLatInMeters};
+    }
+
 
     private Polyline pdrPath; // Field to hold the PDR path
 

@@ -16,8 +16,10 @@ import androidx.preference.PreferenceManager;
 import com.openpositioning.PositionMe.MainActivity;
 import com.openpositioning.PositionMe.PathView;
 import com.openpositioning.PositionMe.PdrProcessing;
+import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.ServerCommunications;
 import com.openpositioning.PositionMe.Traj;
+import com.openpositioning.PositionMe.fragments.RecordingFragment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -136,6 +138,7 @@ public class SensorFusion implements SensorEventListener, Observer {
     // Trajectory displaying class
     private PathView pathView;
 
+    private RecordingFragment recordingFragment;
     //region Initialisation
     /**
      * Private constructor for implementing singleton design pattern for SensorFusion.
@@ -226,6 +229,8 @@ public class SensorFusion implements SensorEventListener, Observer {
         this.settings = PreferenceManager.getDefaultSharedPreferences(context);
 
         this.pathView = new PathView(context, null);
+
+        this.recordingFragment= new RecordingFragment();
 
         if(settings.getBoolean("overwrite_constants", false)) {
             this.filter_coefficient =Float.parseFloat(settings.getString("accel_filter", "0.96"));
@@ -327,7 +332,8 @@ public class SensorFusion implements SensorEventListener, Observer {
                 float[] newCords = this.pdrProcessing.updatePdr(stepTime, this.accelMagnitude, this.orientation[0]);
                 if (saveRecording) {
                     // Store the PDR coordinates for plotting the trajectory
-                    this.pathView.drawTrajectory(newCords);
+//                    this.pathView.drawTrajectory(newCords);
+                    this.pathView.drawTrajectory(recordingFragment.trajCords);
                 }
                 this.accelMagnitude.clear();
                 if (saveRecording) {
