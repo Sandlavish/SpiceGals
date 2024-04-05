@@ -550,7 +550,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
                     .position(position)
                     .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_red_dot_24)))
                     .visible(isMatchedMarkerVisible));
-            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15)); // Zoom level can be adjusted
         }
     }
 
@@ -565,8 +564,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             ekfmarker.setPosition(filteredLocation_ekf);
             ekfmarker.setVisible(isEKFMarkerVisible);
         }
-        // Consider not animating the camera every update to avoid jitter
-        //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 19));
     }
 
     /**
