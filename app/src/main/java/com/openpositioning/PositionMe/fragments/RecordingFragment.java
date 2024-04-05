@@ -612,7 +612,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
         if (ekfmarker == null) {
             ekfmarker = mMap.addMarker(new MarkerOptions()
                     .position(filteredLocation_ekf)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)));
+                    .icon(BitmapDescriptorFactory.fromBitmap(getBitmapFromVector(getContext(), R.drawable.ic_baseline_orange_dot_24))));
 
         } else {
             // Update the marker's position to the new, filtered location

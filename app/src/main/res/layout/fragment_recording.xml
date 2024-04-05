@@ -22,15 +22,32 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <Button
+            android:id="@+id/button_add_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/black"
+            android:color="@color/white"
+            android:onClick="onAddTagButtonClicked"
+            android:text="Add Tag"
+            app:cornerRadius="50dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.971"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.247" />
+
         <ImageView
             android:id="@+id/no_wiifi_id"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="344dp"
-            android:layout_marginTop="200dp"
+            android:layout_marginStart="348dp"
+            android:layout_marginTop="224dp"
             android:src="@drawable/ic_baseline_no_wifi_24"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            android:visibility="gone"/>
 
         <androidx.cardview.widget.CardView
             android:id="@+id/currentPositionCard"
@@ -203,8 +220,8 @@
         </androidx.cardview.widget.CardView>
 
         <LinearLayout
-            android:layout_width="102dp"
-            android:layout_height="110dp"
+            android:layout_width="104dp"
+            android:layout_height="136dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:layout_margin="10dp"
@@ -233,7 +250,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" PDR Location"
+                    android:text="PDR Location"
                     android:textSize="10sp" />
             </LinearLayout>
 
@@ -253,7 +270,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" GNSS Location"
+                    android:text="GNSS Location"
                     android:textSize="10sp" />
             </LinearLayout>
 
@@ -273,7 +290,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" Wi-Fi Location"
+                    android:text="Wi-Fi Location"
                     android:textSize="10sp" />
             </LinearLayout>
 
@@ -293,7 +310,26 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" Outlier Location"
+                    android:text="Wi-Fi Outlier Location"
+                    android:textSize="10sp" />
+            </LinearLayout>
+            <!-- fused Location Legend Item -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/ic_baseline_blue_dot_24" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fused Location"
                     android:textSize="10sp" />
             </LinearLayout>
 
@@ -313,7 +349,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" EKF Location"
+                    android:text="EKF Location"
                     android:textSize="10sp" />
             </LinearLayout>
             <!-- MapMatched Location Legend Item -->
@@ -332,7 +368,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" Map Matched Location"
+                    android:text="Map Matched Location"
                     android:textSize="10sp" />
             </LinearLayout>
         </LinearLayout>
@@ -373,22 +409,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.259" />
-
-        <Button
-            android:id="@+id/button_add_tag"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/black"
-            android:onClick="onAddTagButtonClicked"
-            android:text="Add Tag"
-            android:color = "@color/white"
-            app:cornerRadius="50dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.967"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.21" />
 
         <Button
             android:id="@+id/btnToggleMarkers"
