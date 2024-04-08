@@ -150,8 +150,7 @@ public class ParticleFilter {
 
 /* ----------------------  NOTE ----------------------
  * it's normal and often expected for the estimated position produced by a particle filter to be very close to
- * , or even seemingly overlapping with, the position indicated by a predictive marker
- * (like those derived from PDR, GNSS, or another tracking system) under certain conditions.
- * This outcome can be considered a sign that the particle filter is performing well,
+ * the position indicated by a predictive marker.
+ * This outcome can be a sign that the particle filter is performing well,
  * particularly if the predictive markers are accurate representations of the true position.
  * */

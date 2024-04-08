@@ -333,6 +333,7 @@ public class SensorFusion implements SensorEventListener, Observer {
                 if (saveRecording) {
                     // Store the PDR coordinates for plotting the trajectory
 //                    this.pathView.drawTrajectory(newCords);
+                    // Stores the fused position coordinates to plot the trejectory
                     this.pathView.drawTrajectory(recordingFragment.trajCords);
                 }
                 this.accelMagnitude.clear();

@@ -88,7 +88,7 @@ import java.util.concurrent.Executors;
  * - Displaying and updating a Google Map with the user's trajectory, using polyline overlays to represent
  * the path taken based on PDR (Pedestrian Dead Reckoning), GNSS (Global Navigation Satellite System), and
  * WiFi positioning data.
- * - Processing and filtering location data through algorithms such as Kalman filters and  Particle Filter
+ * - Processing and filtering location data through algorithms such as Extended Kalman Filter (EKF) and  Particle Filter
  * to improve accuracy.
  * - Dynamically updating the UI based on sensor data, including light levels for indoor/outdoor detection
  * and user elevation.
@@ -559,8 +559,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * to locate the closest point based on the user's current floor.
      */
     private void performMapMatching() {
-        // Assume LocationResponse.getFloor() gives you the current floor number
-        // And fusedLocation gives you the current lat and lon
         if (movingAverageFusedLocation !=null) {
             double currentLatitude = movingAverageFusedLocation.latitude;
             double currentLongitude = movingAverageFusedLocation.longitude;
@@ -568,7 +566,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             LocationResponse nearestLocation = mapMatcher.findNearestLocation(currentLatitude, currentLongitude, currentFloor);
             //LocationResponse nearestLocation = mapMatcher.findKNNLocation(currentLatitude, currentLongitude, currentFloor, 3);
             if (nearestLocation != null) {
-                //Use the getter methods to access the location's latitude and longitude
                 // Log.d("MapMatching", "Nearest Location: Latitude = " + nearestLocation.getLatitude() + ", Longitude = " + nearestLocation.getLongitude());
 
                 addMarkerToMap(nearestLocation.getLatitude(), nearestLocation.getLongitude());
@@ -955,14 +952,17 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             updatePDRPosition();
             fetchWifiLocationFromServer();
 
+            //Particle Filter usage
             if (WifiFilter == null) {
                 fusedLocation = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
             }
             else {
                 if (isOutdoor) {
+                    //If outside use GNSS as the reference - PDR for updates
                     fusedLocation = updateParticleFilterPositions(GNSSFilter, PDRFilter, GNSSFilter);
                 }
                 else {
+                    //If inside use WIFI as the reference - GNSS/PDR for updates
                     fusedLocation = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
                 }
             }
@@ -986,12 +986,15 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
             }
 
 //            LatLng fusedPosition = updateParticleFilterPositions(WifiFilter, PDRFilter, GNSSFilter);
+            //Moving average calculations
             recentFusedLocations.add(fusedLocation);
             while (recentFusedLocations.size() > MOVING_AVERAGE_WINDOW) {
                 recentFusedLocations.remove(0); // Remove the oldest location to maintain window size
             }
 
             movingAverageFusedLocation = getAverageLocation(recentFusedLocations);
+
+            //Trajectory upload array
             trajCords = convertLatLngToMeters(movingAverageFusedLocation, PDRPOS);
 
             updateMapWithFusedPosition(movingAverageFusedLocation);
@@ -1482,7 +1485,6 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Displays a dialog allowing the user to toggle the visibility of different types of markers on the map.
      * This provides a way for users to customize the map view according to their preferences.
-     * @author: Michalis Voudaskas
      */
 
     private void showToggleMarkersDialog() {

@@ -113,6 +113,7 @@ public class MapMatching {
         return nearestLocation;
     }
 
+    //Finds the nearest location but with KNN - taking into account nearest neighbours
     public LocationResponse findKNNLocation(double userLat, double userLon, int userFloor, int k) {
         List<LocationResponse> filteredLocations = radiomapData.stream()
                 .filter(location -> location.getFloor() == userFloor)
