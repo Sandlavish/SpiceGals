@@ -3,6 +3,7 @@ package com.openpositioning.PositionMe.fragments;
 /**
  * Provides a collection of static methods for common matrix operations,
  * including addition, subtraction, multiplication, and finding the inverse of a matrix.
+ * @author Apoorv Tewari
  */
 public class MatrixOperations {
 

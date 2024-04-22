@@ -9,6 +9,8 @@ public class ExtendedKalmanFilter {
      *
      * @param stateSize The size of the state vector.
      * @param measurementSize The size of the measurement vector.
+     *
+     * @author Apoorv Tewari
      */
 
     private double[][] P; // State covariance matrix

@@ -233,7 +233,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * {@inheritDoc}
      * Gets an instance of the {@link SensorFusion} class, and initialises the context and settings.
      * Creates a handler for periodically updating the displayed data.
-     *
+     * @author Apoorv Tewari
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {

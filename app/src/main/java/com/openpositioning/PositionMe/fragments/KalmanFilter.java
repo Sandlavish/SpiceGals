@@ -1,5 +1,8 @@
 package com.openpositioning.PositionMe.fragments;
 
+
+//  @author Apoorv Tewari
+
 public class KalmanFilter {
     public static class KalmanLatLong {
         public float Q_metres_per_second;

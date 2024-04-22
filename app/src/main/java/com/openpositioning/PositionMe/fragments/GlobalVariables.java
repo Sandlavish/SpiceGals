@@ -10,7 +10,7 @@ import com.openpositioning.PositionMe.sensors.SensorFusion;
  * recording starts. This fragment displays a map in which the user can adjust their location to
  * correct the PDR when it is complete
  *
- * @author Virginia Cangelosi
+ * @author Apoorv Tewari
  * @see HomeFragment the previous fragment in the nav graph.
  * @see RecordingFragment the next fragment in the nav graph.
  * @see SensorFusion the class containing sensors and recording.

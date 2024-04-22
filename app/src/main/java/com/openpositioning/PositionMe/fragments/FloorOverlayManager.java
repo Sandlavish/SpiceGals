@@ -8,6 +8,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.openpositioning.PositionMe.R;
 import com.openpositioning.PositionMe.sensors.SensorFusion;
 
+//  * @author Apoorv Tewari
+// * @author Batu Bayram
+
+
+
 public class FloorOverlayManager {
     // Variables to control visibility and manual selection of floor overlays
     public boolean manualSelectionActive = false;
