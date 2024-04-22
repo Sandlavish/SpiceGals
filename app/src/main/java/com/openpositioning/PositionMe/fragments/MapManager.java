@@ -58,7 +58,6 @@ public class MapManager implements OnMapReadyCallback {
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(true);
-        // Optionally, additional configurations like initializing polylines for tracking user movements could be added here
     }
-    // Additional methods to update user location, handle map interactions, etc., could be added here
+
 }

@@ -149,10 +149,10 @@ public class FloorOverlayManager {
             // Automatic mode
             float currentElevation = sensorFusion.getElevation();
             Floor targetFloor = determineFloorByElevation(currentElevation);
-            setFloorVisibility(targetFloor);  // Make sure this method is adapted to work in both automatic and manual modes
+            setFloorVisibility(targetFloor);
         } else {
             // Manual mode
-            setFloorVisibility(userSelectedFloor);  // Assuming this method properly sets visibility for the selected floor
+            setFloorVisibility(userSelectedFloor);
         }
     }
 

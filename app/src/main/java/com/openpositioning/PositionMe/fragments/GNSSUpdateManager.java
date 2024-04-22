@@ -43,8 +43,7 @@ public class GNSSUpdateManager {
                     return;
                 }
                 for (Location location : locationResult.getLocations()) {
-                    // Update UI with location data
-                    // e.g., updateLocationInfo(location.getLatitude(), location.getLongitude());
+                    // Update UI with location dat
                 }
             }
         };
@@ -71,5 +70,5 @@ public class GNSSUpdateManager {
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
-    // Additional methods as needed...
+
 }

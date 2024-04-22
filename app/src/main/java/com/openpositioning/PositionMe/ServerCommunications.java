@@ -49,6 +49,7 @@ import okhttp3.ResponseBody;
  *
  * @author Michal Dvorak
  * @author Mate Stodulka
+ * @author Michalis Voudaskas
  */
 public class ServerCommunications implements Observable {
 
@@ -451,7 +452,7 @@ public class ServerCommunications implements Observable {
      * @param jsonWifiFingerprint The JSON string of WiFi fingerprint data.
      * @return LocationResponse object containing the latitude, longitude, and floor (if available).
      * @throws IOException If there is a network or IO issue or an unexpected response code.
-     * @author Michalis Voudaskas
+     *
      */
     public LocationResponse sendWifiFingerprintToServer(String jsonWifiFingerprint) throws IOException {
        // Log.d("ServerCommunications", "JSON being sent: " + jsonWifiFingerprint);
