@@ -488,6 +488,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      *
      * @param gnssLocation An array containing the latitude and longitude from the GNSS sensor.
      * @return A LatLng object representing the filtered location.
+     * @author Apoorv Tewari
      */
     private LatLng processLocationWithKalmanFilter(float[] gnssLocation) {
         double latitude = gnssLocation[0];
@@ -535,6 +536,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Predicts the user's next location based on the current state estimate and the state transition model.
      * This method should be called after each new sensor update to advance the state of the Kalman filter.
+     * @author Apoorv Tewari
      */
     private void predictUserLocation() {
         // Calculate the time step (dt) in seconds
@@ -621,6 +623,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Initializes and starts the periodic checking of the light level to determine
      * if the user is indoors or outdoors.
+     * @author Apoorv Tewari
      */
     private void startIndoorOutdoorDetection() {
         lightLevelHandler = new Handler();
@@ -637,6 +640,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Updates the status of whether the user is indoors or outdoors based on light sensor readings
      * and the user's presence within defined building bounds.
+     * @author Apoorv Tewari
      */
     private void updateIndoorOutdoorStatus() {
 
@@ -665,6 +669,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Initializes periodic updates for GNSS location data.
      * This method sets up a handler and runnable task to fetch GNSS data at regular intervals.
+     * @author Apoorv Tewari
      */
     private void setupGnssUpdates() {
         // Initialize the Handler and Runnable for GNSS updates
@@ -697,7 +702,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Sets up the spinner for selecting the map type in the UI.
      * Allows the user to choose between different map presentations such as satellite or terrain.
-     *
+     * @author Apoorv Tewari
      * @param view The view containing the spinner.
      */
 
@@ -736,6 +741,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      *
      * @param index The index of the selected item in the spinner.
      * @return The GoogleMap map type constant corresponding to the selected item.
+     * @author Apoorv Tewari
      */
     private int getMapTypeFromIndex(int index) {
         switch (index) {
@@ -754,6 +760,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
      * Text Views and Icons initialised to display the current PDR to the user. A Button onClick
      * listener is enabled to detect when to go to next fragment and allow the user to correct PDR.
      * A runnable thread is called to update the UI every 0.5 seconds.
+     * @author Apoorv Tewari
      */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -1022,6 +1029,7 @@ public class RecordingFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Updates the PDR (Pedestrian Dead Reckoning) position on the map. This method uses the latest PDR coordinates
      * to update the user's estimated position on the map.
+     * @author Apoorv Tewari
      */
 
     private void updatePDRPosition() {
