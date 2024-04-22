@@ -11,6 +11,7 @@ import com.openpositioning.PositionMe.R;
 /**
  * Manages map functionalities including initialization and configuration
  * of map settings like map type, UI settings, and potentially adding overlays or polylines.
+ * @author apoorvtewari
  */
 public class MapManager implements OnMapReadyCallback {
     private GoogleMap mMap; // Instance of GoogleMap

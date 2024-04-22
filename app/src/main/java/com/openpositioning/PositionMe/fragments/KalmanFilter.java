@@ -1,6 +1,6 @@
 package com.openpositioning.PositionMe.fragments;
 
-
+//This fragment implements the normal Kalman Filter.
 //  @author Apoorv Tewari
 
 public class KalmanFilter {
